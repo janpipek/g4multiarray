@@ -5,8 +5,9 @@
 #include <valarray>
 #include <array>
 #include <functional>
-// #include <stdalg>
 
+
+// Forward-declare the types
 template<typename T, size_t N> class G4MultiArray;
 template<typename T, size_t N, size_t M> class G4MultiArrayView;
 
@@ -17,25 +18,42 @@ template<typename T, size_t N, size_t M> class G4MultiArrayView;
 template<typename T, size_t N> class G4MultiArray final
 {
 public:
-    explicit G4MultiArray(std::array<size_t, N> shape, std::valarray<T>& data) :
+    constexpr static size_t Ndim = N;
+
+    G4MultiArray(std::array<size_t, N> shape, std::valarray<T>& data) :
         fShape(shape), fData(data)
     {
-        fSize = 1;
-        for (size_t element : shape) 
-        {
-            fSize *= element;
-        }
-        if (fSize != data.size())
-        {
-            // TODO: raise something
-        }
+        update_shape();   
     }
+
+    G4MultiArray(std::array<size_t, N> shape, std::valarray<T>&& data) :
+        fShape(shape), fData(data)
+    {
+        update_shape();
+    }    
+
+    G4MultiArray& operator=(G4MultiArray&& other)
+    {
+        std::swap(fData, other.fData);
+        std::swap(fStrides, other.fStrides);
+        std::swap(fShape, other.fShape);
+        std::swap(fSize, other.fSize);
+    }
+
+    /* G4MultiArray& operator=(G4MultiArray& other)
+    {
+        fData = other.fData;
+        fStrides = other.fStrides;
+        fShape = other.fShape;
+        fSize = other.fSize;
+    }*/   
 
     size_t Size() const { return fSize; }
 
     const std::array<size_t, N>& Shape() const { return fShape; }
 
-    // const std::
+    const std::valarray<T>& Flatten() const { return fData; }
+
 
     /*void ReshapeInline(std::array<)
     {
@@ -58,34 +76,79 @@ public:
         return G4MultiArray<T, M>(newShape, fData);
     }
 
-    template<size_t M> G4MultiArray& operator=(const G4MultiArrayView<T, M+N, N>& view)
+    /* template<size_t M> G4MultiArray& operator=(const G4MultiArrayView<T, M+N, N>& view)
     {
 
-    };
+    };*/
 
-    T& At(std::array<size_t, N> index)
+    // TODO: Index with masked array
+
+
+
+    template<typename AccessorType = std::array<size_t, N>> const T& At(AccessorType index) const
     {
-
+        return fData[make_index(index)];
     }
 
-    const T& At(std::array<size_t, N> index) const
+    template<typename AccessorType = std::array<size_t, N>> T& At(AccessorType index)
     {
+        return fData[make_index(index)];
+    } 
 
-    }
+    /*T& At(std::initializer_list<T> init)
+    {
+        return fData[make_index(std::arr)]
+    }*/
 
-    // template<
-
+    /* template<> typename std::enable_if<(N==1), T&>::type At(size_t i)
+    {
+        return fData[i];
+    }*/
 
 
     //TODO: Resizetemplate<> const G4MultiArray
     
 
     // Arithmetic operations
+    // friend G4MultiArray<T, N> abs (const G4MultiArray<T, N>&);
 
 private:
+    void update_shape()
+    {
+        fSize = 1;
+        fStrides[N - 1] = 1;
+        for (size_t i = 0; i < N; i++) 
+        {
+            fSize *= fShape[i];
+            if (i > 0)
+            {
+                fStrides[N - 1 - i] = fStrides[N - i] * fShape[N - 1 - i];
+            }
+        }
+        if (fSize != fData.size())
+        {
+            throw std::runtime_error("Invalid shape. Dimensions must match.");
+        }
+    }
+
+    // TODO: Implement check/not chcek
+    size_t make_index(const std::array<size_t, N>& arr) const
+    {
+        size_t index = 0;
+        for (int i = 0; i < N; i++)
+        {
+            if (arr[i] >= fShape[i])
+            {
+                throw std::runtime_error("Index overflow");
+            }
+            index += fStrides[i] * arr[i];
+        }
+        return index;
+    }
+
     size_t fSize;
 
-    std::valarray<size_t> fStrides;
+    std::array<size_t, N> fStrides;
 
     std::array<size_t, N> fShape;
 
@@ -93,7 +156,17 @@ private:
     std::valarray<T> fData;
 };
 
+template<typename T, size_t N> G4MultiArray<T, N> abs (const G4MultiArray<T, N>& arr)
+{
+    std::valarray<T>&& newData = abs(arr.Flatten());
+    return { arr.Shape(), newData };
+}
 
+template<typename T, size_t N> G4MultiArray<T, N> exp (const G4MultiArray<T, N>& arr)
+{
+    std::valarray<T>&& newData = exp(arr.Flatten());
+    return { arr.Shape(), newData };
+}
 
 /*template<typename T, size_t N, size_t M> class G4MultiArrayView
 {
