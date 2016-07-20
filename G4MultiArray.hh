@@ -201,6 +201,8 @@ public:
         update_shape();   
     }
 
+    //template<size_t... Ms> G4MultiArray()
+
     G4MultiArray(const index_type& shape, data_type&& data) :
         fShape(shape), fData(data)
     {
@@ -218,6 +220,12 @@ public:
         std::swap(fStrides, other.fStrides);
         std::swap(fShape, other.fShape);
         std::swap(fSize, other.fSize);
+        return *this;
+    }
+
+    template<size_t N2> G4MultiArray& operator=(const G4MultiArrayView<T, N2, N>& other)
+    {
+        G4MultiArrayView<T, N, N>(*this) = other;
         return *this;
     }
 
@@ -392,7 +400,14 @@ public:
 
     template<typename, size_t, size_t> friend class G4MultiArrayView;
 
-    G4MultiArrayView(array_type& array, std::slice a_slice = {}) : fArray(array)
+    G4MultiArrayView(array_type& array) : fArray(array)
+    {
+        static_assert(N == M, "Slicing array must result in a view of the same dimension.");
+        fStrides = array.fStrides;
+        fShape = array.fShape;
+    }
+
+    G4MultiArrayView(array_type& array, std::slice a_slice) : fArray(array)
     {
         static_assert(N == M, "Slicing array must result in a view of the same dimension.");
         fStrides = array.fStrides;

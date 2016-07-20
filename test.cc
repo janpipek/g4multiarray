@@ -57,4 +57,10 @@ int main()
 
 	new_arr3[1][1] = G4MultiArray<double, 3>({2, 2, 2}, 5)[1];
 	cout << new_arr3 << endl;
+
+	G4MultiArray<double, 2> new_arr4 {{2, 2}};
+	new_arr4 = new_arr3[0][0];
+	cout << new_arr4 << endl;
+
+	// vector<vector<double>> k { {1 , 2, 5}, {1, 4}};
 }
