@@ -36,6 +36,8 @@ int main()
 
 	cout << arr[1] << endl;
 
+	// arr[1] = 0;
+
 	cout << endl;
 
 	cout << arr << endl;
@@ -49,5 +51,10 @@ int main()
 
 	G4MultiArray<double, 4> new_arr3 {{2, 2, 2, 2}};
 	cout << new_arr3 << endl;
-	// std::slice zm {0,0,0};
+
+	new_arr3[0][0] = G4MultiArray<double, 2>({2, 2}, 4);
+	cout << new_arr3 << endl;
+
+	new_arr3[1][1] = G4MultiArray<double, 3>({2, 2, 2}, 5)[1];
+	cout << new_arr3 << endl;
 }

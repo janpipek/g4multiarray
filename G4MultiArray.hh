@@ -30,19 +30,19 @@
 template<typename T, size_t N> class G4MultiArray;
 template<typename T, size_t N, size_t M> class G4MultiArrayView;
 
-template<typename T, size_t N> class G4MultiArrayImpl
+template<typename T, size_t N, size_t M = N> class G4MultiArrayImpl
 {
 public:
-    using item_type = G4MultiArrayView<T, N, N-1>;
+    using item_type = G4MultiArrayView<T, N, M-1>;
 
     static item_type get_item(G4MultiArray<T, N>& arr, size_t i)
     {
         return item_type(arr, i);
     }
 
-    template<size_t M> static item_type get_item(G4MultiArrayView<T, M, N>& arr, size_t i)
+    static G4MultiArrayView<T, N, M-1> get_item(G4MultiArrayView<T, N, M>& arr, size_t i)
     {
-        return item_type(arr, i);
+        return G4MultiArrayView<T, N, M-1>(arr, i);
     } 
 
     static item_type const get_const_item(const G4MultiArray<T, N>& arr, size_t i)
@@ -50,15 +50,13 @@ public:
         return item_type(arr, i);
     }    
 
-    template<size_t M> static const item_type get_const_item(const G4MultiArrayView<T, M, N>& arr, size_t i)
+    static const G4MultiArrayView<T, N, M-1> get_const_item(const G4MultiArrayView<T, N, M>& arr, size_t i)
     {
-        return item_type(arr, i);
+        return G4MultiArrayView<T, N, M-1>(arr, i);
     } 
 };
 
-#include <iostream> // !!!
-
-template<typename T> class G4MultiArrayImpl<T, 1>
+template<typename T, size_t N> class G4MultiArrayImpl<T, N, 1>
 {
 public:
     using item_type = T&;
@@ -68,7 +66,7 @@ public:
         return arr.fData[i];
     }    
 
-    template<size_t M> static item_type get_item(G4MultiArrayView<T, M, 1>& arr, size_t i)
+    static item_type get_item(G4MultiArrayView<T, N, 1>& arr, size_t i)
     {
         auto index = arr.make_index({i});
         // std::cout << "i" << index << std::endl;
@@ -80,7 +78,7 @@ public:
         return arr.fData[i];
     }    
 
-    template<size_t M> static const item_type get_const_item(const G4MultiArrayView<T, M, 1>& arr, size_t i)
+    static const item_type get_const_item(const G4MultiArrayView<T, N, 1>& arr, size_t i)
     {
         return arr.fArray.fData[arr.make_index({i})];
     }  
@@ -90,7 +88,7 @@ public:
         return arr.fData[i];
     }    
 
-    template<size_t M> static const item_type get_const_item(const G4MultiArrayView<T, M, 1>&& arr, size_t i)
+    static const item_type get_const_item(const G4MultiArrayView<T, N, 1>&& arr, size_t i)
     {
         return arr.fArray[arr.make_index({i})];
     }     
@@ -118,14 +116,13 @@ public:
 
     template<typename, size_t, size_t> friend class G4MultiArrayView;
 
-    template<typename, size_t> friend class G4MultiArrayImpl;
+    template<typename, size_t, size_t> friend class G4MultiArrayImpl;
 
     template<typename, size_t> friend std::ostream& operator << (std::ostream&, const G4MultiArray&);
 
     void Write(std::ostream& os) const
     {
         os << "G4MultiArray([";
-        //os << "             ";
         size_t i = 0;
         while (i < fSize)
         {
@@ -160,8 +157,6 @@ public:
                 }    
             }
 
-            // os << " ";
-
             os << fData[i];
             i++;
 
@@ -181,13 +176,6 @@ public:
             if (i != fSize)
             {
                 os << ", ";
-            }
-            else if (N > 1 && j + 1 < N)
-            {
-                for (size_t k = j + 1; k < N; k ++)
-                {
-                    //
-                }
             }
         }
         os << "])";
@@ -353,17 +341,17 @@ private:
     size_t make_index(const index_type& arr, bool check_index = true) const
     {
         size_t index = 0;
-        std::cout << "multi: ";
+        // std::cout << "multi: ";
         for (int i = 0; i < N; i++)
         {
             if (check_index && (arr[i] >= fShape[i]))
             {
                 throw std::runtime_error("Index overflow.");
             }
-            std::cout << fStrides[i] << "*" << arr[i] << " ";
+            // std::cout << fStrides[i] << "*" << arr[i] << " ";
             index += fStrides[i] * arr[i];
         }
-        std::cout << " = " << index << std::endl;
+        // std::cout << " = " << index << std::endl;
         return index;
     }
 
@@ -398,9 +386,11 @@ public:
 
     using index_type = typename G4MultiArray<T, M>::index_type;
 
-    using item_type = typename G4MultiArrayImpl<T, M>::item_type;
+    using item_type = typename G4MultiArrayImpl<T, N, M>::item_type;
 
-    template<typename, size_t> friend class G4MultiArrayImpl;
+    template<typename, size_t, size_t> friend class G4MultiArrayImpl;
+
+    template<typename, size_t, size_t> friend class G4MultiArrayView;
 
     G4MultiArrayView(array_type& array, std::slice a_slice = {}) : fArray(array)
     {
@@ -414,6 +404,32 @@ public:
 
         //update_gslice();
     }
+
+    G4MultiArrayView& operator=(const T& value)
+    {
+        fArray.fData[get_gslice(fGlobalOffset, fShape, fStrides)] = value;
+        return *this;
+    }
+
+    template<size_t N2> G4MultiArrayView& operator=(const G4MultiArrayView<T, N2, M>& other)
+    {
+        if (other.Shape() != fShape)
+        {
+            throw std::runtime_error("Cannot assign array of different shapes.");
+        }
+        *this = other.Copy();
+        return *this;
+    }
+
+    G4MultiArrayView& operator=(const G4MultiArray<T, M>& other)
+    {
+        if (other.Shape() != fShape)
+        {
+            throw std::runtime_error("Cannot assign array of different shapes.");
+        }
+        fArray.fData[get_gslice(fGlobalOffset, fShape, fStrides)] = other.fData;
+        return *this;
+    }    
 
     G4MultiArrayView(array_type& array, size_t i) : fArray(array)
     {
@@ -435,7 +451,7 @@ public:
         //update_gslice();
     }    
 
-    G4MultiArrayView(G4MultiArrayView<T, N, M+1>& upper, size_t i) : fArray(upper.Array)
+    G4MultiArrayView(G4MultiArrayView<T, N, M+1>& upper, size_t i) : fArray(upper.fArray)
     {
         for (size_t i = 0; i < M; i++)
         {
@@ -461,12 +477,12 @@ public:
 
     item_type operator[](size_t i)
     {
-        return G4MultiArrayImpl<T, M>::get_item(*this, i);
+        return G4MultiArrayImpl<T, N, M>::get_item(*this, i);
     }  
 
     item_type operator[](size_t i) const
     {
-        return G4MultiArrayImpl<T, M>::get_const_item(*this, i);
+        return G4MultiArrayImpl<T, N, M>::get_const_item(*this, i);
     }    
 
     const index_type& Shape() const { return fShape; }
@@ -486,7 +502,7 @@ private:
     size_t make_index(const index_type& arr, bool check_index = true) const
     {
         size_t index = fGlobalOffset;
-        std::cout << "multi: " << fGlobalOffset << " + ";
+        // std::cout << "multi: " << fGlobalOffset << " + ";
         for (int i = 0; i < M; i++)
         {
             // std::cout << i << ", ";
@@ -494,10 +510,10 @@ private:
             {
                 throw std::runtime_error("Index overflow.");
             }
-            std::cout << fStrides[i] << "*" << arr[i] << " ";
+            // std::cout << fStrides[i] << "*" << arr[i] << " ";
             index += fStrides[i] * arr[i];
         }
-        std::cout << " = " << index << std::endl;
+        // std::cout << " = " << index << std::endl;
         // std::cout << " = " << index << std::endl;
         return index;
     }    
