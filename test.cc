@@ -17,4 +17,24 @@ int main()
 	cout << arr.At({1, 1}) << endl;
 
 	cout << arr.Flatten()[3] << endl;
+	cout << arr.As<int>().At({1, 1}) << endl;
+
+
+	cout << "----" << endl;
+	arr = {{2, 3}, {1, 2, 3, 4, 5, 6}};
+
+	cout << arr[{1, 1}] << endl;
+	cout << arr[1][1] << endl;
+	cout << arr[{0, 2}] << endl;
+	cout << arr[0][2] << endl;
+
+	arr = 0;
+	cout << arr[{1, 1}] << endl;
+
+	arr[1][1] = 7;
+	cout << arr[1][1] << endl;
+
+	
+
+	// std::slice zm {0,0,0};
 }
