@@ -12,12 +12,12 @@ int main()
 	arr = exp(abs(arr));
 	cout << arr.Size() << endl;
 
-	cout << arr.At({1, 1}) << endl;
-	arr.At({1, 1}) = 3.7;
-	cout << arr.At({1, 1}) << endl;
+	cout << arr[{1, 1}] << endl;
+	arr[{1, 1}] = 3.7;
+	cout << arr[{1, 1}] << endl;
 
-	cout << arr.Flatten()[3] << endl;
-	cout << arr.As<int>().At({1, 1}) << endl;
+	cout << arr[1].Copy().Flatten()[1] << endl;
+	cout << arr.As<int>()[{1, 1}] << endl;
 
 
 	cout << "----" << endl;

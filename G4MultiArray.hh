@@ -201,7 +201,7 @@ public:
         fStrides = get_strides(newShape);
     }
 
-    template<typename AccessorType = const index_type&> const T& At(AccessorType index) const
+    /* template<typename AccessorType = const index_type&> const T& At(AccessorType index) const
     {
         return fData[make_index(index, true)];
     }
@@ -209,7 +209,7 @@ public:
     template<typename AccessorType = const index_type&> T& At(AccessorType index)
     {
         return fData[make_index(index, true)];
-    } 
+    } */
 
     T& operator[](const index_type& index)
     {
@@ -335,7 +335,7 @@ public:
         fShape[0] = a_slice.size;
         fStrides[0] *= a_slice.stride;
 
-        update_gslice();
+        //update_gslice();
     }
 
     G4MultiArrayView(array_type& array, size_t i) : fArray(array)
@@ -355,7 +355,7 @@ public:
 
         // std::cout <<  "Gloval offset: " << fGlobalOffset << std::endl;
 
-        update_gslice();
+        //update_gslice();
     }    
 
     G4MultiArrayView(G4MultiArrayView<T, N, M+1>& upper, size_t i) : fArray(upper.Array)
@@ -368,14 +368,14 @@ public:
         // fOffsets[0] = i;
         fGlobalOffset = upper.fGlobalOffset + i * upper.fStrides[0];
 
-        update_gslice();
+        // update_gslice();
     }
 
-    /* operator G4MultiArray<T, M>() const
+    operator G4MultiArray<T, M>() const
     {
-        data_type data = fData;
+        data_type data = fArray.fData[get_gslice(fGlobalOffset, fShape, fStrides)];
         return G4MultiArray<T, M>(fShape, std::move(data));
-    }*/
+    }
 
     G4MultiArray<T, M> Copy()
     {
@@ -397,19 +397,13 @@ public:
     // const data_type& Flatten() const { return fData; }
 
 private:
-    /*static std::gslice get_gslice(index_type offset, index_type shape, index_type strides)
+    static std::gslice get_gslice(size_t offset, index_type shape, index_type strides)
     {
         std::valarray<size_t> shape_(M);
         std::valarray<size_t> strides_(M);
         std::copy(shape.begin(), shape.end(), std::begin(shape_));
         std::copy(strides.begin(), strides.end(), std::begin(strides_));
         return std::gslice(offset, shape_, strides_);
-    }*/
-
-    void update_gslice()
-    {
-        // fSlice = get_gslice(fGlobalOffset, fShape, fStrides);
-        // fData = fArray.fData[fSlice];
     }
 
     size_t make_index(const index_type& arr, bool check_index = true) const
