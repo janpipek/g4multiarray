@@ -23,6 +23,7 @@
 #include <valarray>
 #include <array>
 #include <functional>
+#include <ostream>
 
 
 // Forward-declare the types
@@ -101,6 +102,8 @@ public:
 template<typename T, size_t N> class G4MultiArray final
 {
 public:
+    static_assert(N > 0, "Cannot have 0-dimensional arrays");
+
     using index_type = std::array<size_t, N>;
 
     using value_type = T;
@@ -117,14 +120,94 @@ public:
 
     template<typename, size_t> friend class G4MultiArrayImpl;
 
+    template<typename, size_t> friend std::ostream& operator << (std::ostream&, const G4MultiArray&);
+
+    void Write(std::ostream& os) const
+    {
+        os << "G4MultiArray([";
+        //os << "             ";
+        size_t i = 0;
+        while (i < fSize)
+        {
+            if (i == 0)
+            {
+                for (size_t j = 0; j < N; j++)
+                {
+                    os << "[";
+                }
+            }
+            else
+            {
+                for (size_t j = 0; j+1 < N; j++)
+                {
+                    if (i % fStrides[j] == 0)
+                    {
+                        for (size_t k = j; k+1 < N; k++)
+                        {
+                            os << "\n";    
+                        }
+                        os << "               ";
+                        for (size_t k = 0; k < j; k++)
+                        {
+                            os << " ";
+                        }
+                        for (size_t k = j; k+1 < N; k++)
+                        {
+                            os << "[";    
+                        }                        
+                        break;
+                    }
+                }    
+            }
+
+            // os << " ";
+
+            os << fData[i];
+            i++;
+
+            size_t j = 0;
+            // size_t k = 0;
+            for (; j+1 < N; j++)
+            {
+                if (i % fStrides[j] == 0)
+                {
+                    break;
+                }
+            }
+            for (size_t k = j; k+1 < N; k++)
+            {
+                os << "]";
+            }
+            if (i != fSize)
+            {
+                os << ", ";
+            }
+            else if (N > 1 && j + 1 < N)
+            {
+                for (size_t k = j + 1; k < N; k ++)
+                {
+                    //
+                }
+            }
+        }
+        os << "])";
+    }
+
     G4MultiArray(const index_type& shape, const T& value) :
         fShape(shape),
         fData(value, get_product(shape)),
         fSize(get_product(shape)),
-        fStrides(get_strides)
+        fStrides(get_strides(shape))
     { }
 
-    G4MultiArray(const index_type& shape, data_type& data) :
+    G4MultiArray(const index_type& shape) :
+        fShape(shape),
+        fData(get_product(shape)),
+        fSize(get_product(shape)),
+        fStrides(get_strides(shape))
+    { }    
+
+    G4MultiArray(const index_type& shape, const data_type& data) :
         fShape(shape), fData(data)
     {
         update_shape();   
@@ -186,7 +269,7 @@ public:
         }
     }
 
-    template<size_t M> G4MultiArray<T, M> Reshape(const std::array<T, M> newShape) const
+    template<size_t M> G4MultiArray<T, M> Reshape(const std::array<size_t, M>& newShape) const
     {
         return G4MultiArray<T, M>(newShape, fData);
     }
@@ -248,27 +331,21 @@ private:
         result[N - 1] = 1;
         for (size_t i = 1; i < N; i++)
         {
-            fStrides[N - 1 - i] = fStrides[N - i] * fShape[N - 1 - i];
+            result[N - 1 - i] = result[N - i] * arr[N - i];
         }
         return result;
     }
 
     void update_shape()
     {
-        fSize = 1;
-        fStrides[N - 1] = 1;
-        for (size_t i = 0; i < N; i++) 
-        {
-            fSize *= fShape[i];
-            if (i > 0)
-            {
-                fStrides[N - 1 - i] = fStrides[N - i] * fShape[N - 1];
-            }
-        }
-        if (fSize != fData.size())
+        size_t size = get_product(fShape);
+        if (size != fData.size())
         {
             throw std::runtime_error("Invalid shape. Dimensions must match.");
         }
+
+        fSize = size;
+        fStrides = get_strides(fShape);
     }
 
     // TODO: Implement check/not chcek
@@ -377,7 +454,7 @@ public:
         return G4MultiArray<T, M>(fShape, std::move(data));
     }
 
-    G4MultiArray<T, M> Copy()
+    G4MultiArray<T, M> Copy() const
     {
         return G4MultiArray<T, M>(*this);   // Uses reference???
     }
@@ -451,6 +528,18 @@ private:
 
     size_t fSize;
 };
+
+template<typename T, size_t N> std::ostream& operator << (std::ostream& os, const G4MultiArray<T, N>& array)
+{
+    array.Write(os);
+    return os;
+}
+
+template<typename T, size_t N, size_t M> std::ostream& operator << (std::ostream& os, const G4MultiArrayView<T, N, M>& array)
+{
+    array.Copy().Write(os);
+    return os;
+}
 
 
 #endif

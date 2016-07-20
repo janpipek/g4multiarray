@@ -34,7 +34,20 @@ int main()
 	arr[1][1] = 7;
 	cout << arr[1][1] << endl;
 
-	
+	cout << arr[1] << endl;
 
+	cout << endl;
+
+	cout << arr << endl;
+
+	auto new_arr = arr.Reshape<3>({1, 2, 3});
+	cout << new_arr << endl;
+
+	
+	auto new_arr2 = arr.Reshape<4>({1, 2, 1, 3});
+	cout << new_arr2 << endl;
+
+	G4MultiArray<double, 4> new_arr3 {{2, 2, 2, 2}};
+	cout << new_arr3 << endl;
 	// std::slice zm {0,0,0};
 }
