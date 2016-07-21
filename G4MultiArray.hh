@@ -1,18 +1,7 @@
 /*
     G4MultiArray class, representing N-dimensional data.
 
-    Written by: Jan Pipek (jan.pipek@gmail.com)
-
-    Goals:
-    - C++11 "feel"
-    - No virtual functions
-    - API similarity to std::vector
-    - API similarity to numpy's ndarray
-    - Interoperability with Geant4's G4ThreeVector, G4RotationMatrix, ...
-
-    Inspired by:
-    - B.Stroustrup's Matrix ( http://www.stroustrup.com/Programming/Matrix/Matrix.h )
-
+    Written by: Jan Pipek (jan.pipek@gmail.com), 2016
  */
 
 
@@ -373,7 +362,7 @@ public:
     {
         if (fShape != other.fShape)
         {
-            throw std::runtime_error("Incompatible shapes for multiplication.");
+            throw std::runtime_error("Incompatible shapes for division.");
         }
         fData /= other;
         return *this;        
@@ -396,7 +385,7 @@ public:
     {
         if (fShape != other.fShape)
         {
-            throw std::runtime_error("Incompatible shapes for multiplication.");
+            throw std::runtime_error("Incompatible shapes for addition.");
         }
         fData += other;
         return *this;        
@@ -419,7 +408,7 @@ public:
     {
         if (fShape != other.fShape)
         {
-            throw std::runtime_error("Incompatible shapes for multiplication.");
+            throw std::runtime_error("Incompatible shapes for subtraction.");
         }
         fData -= other;
         return *this;        
