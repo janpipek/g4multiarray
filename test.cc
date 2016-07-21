@@ -62,5 +62,26 @@ int main()
 	new_arr4 = new_arr3[0][0];
 	cout << new_arr4 << endl;
 
-	// vector<vector<double>> k { {1 , 2, 5}, {1, 4}};
+	vector<vector<double>> k { {1 , 2}, {1, 4}};
+	G4MultiArray<double, 2> new_arr5(k);
+	cout << new_arr5 << endl;
+
+	G4MultiArray<double, 2> new_arr6 {{{1 , 2}, {1, 4}}};
+	cout << new_arr6 << endl;
+
+	//auto arr7 = make_multiarray<double, 2>({{1, 2}});
+
+	G4MultiArray<double, 2> arr8 {{
+		{ 1,  2,  3,  4,  5,  6,  7,  8,  9, 10},
+		{ 2,  4,  6,  8, 10, 12, 14, 16, 18, 20}
+	}};
+	cout << arr8 << endl;
+
+	arr8 = {{
+		{ 1,  2,  3,  4,  5,  6,  7,  8},
+		{ 2,  4,  6,  8, 10, 12, 14, 16}
+	}};
+	cout << arr8 * 3 << endl;
+
+	cout << (3.14 * arr8 - 58) << endl;
 }
