@@ -247,7 +247,7 @@ public:
         result.resize(fSize);
         for (size_t i = 0; i < fSize; i++)        
         {
-            result[i] = U{fData[i]};
+            result[i] = U(fData[i]);
         }
         return G4MultiArray<U, N>(fShape, std::move(result));
     }
