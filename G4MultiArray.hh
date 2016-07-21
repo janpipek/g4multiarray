@@ -217,6 +217,13 @@ public:
         fStrides(get_strides(shape))
     { }    
 
+    G4MultiArray(const index_type& shape, const T* data) :
+        fShape(shape),
+        fData(data, get_product(shape)),
+        fSize(get_product(shape)),
+        fStrides(get_strides(shape))
+    { }
+
     G4MultiArray(const index_type& shape, const data_type& data) :
         fShape(shape), fData(data)
     {
@@ -275,6 +282,11 @@ public:
 
     const data_type& Flatten() const { return fData; }
 
+    G4MultiArray Copy() const
+    {
+        return G4MultiArray<T, N>(fShape, fData);
+    }
+
     template<typename U> G4MultiArray<U, N> As() const
     {
         std::valarray<U> result;
@@ -314,16 +326,6 @@ public:
         fStrides = get_strides(newShape);
     }
 
-    /* template<typename AccessorType = const index_type&> const T& At(AccessorType index) const
-    {
-        return fData[make_index(index, true)];
-    }
-
-    template<typename AccessorType = const index_type&> T& At(AccessorType index)
-    {
-        return fData[make_index(index, true)];
-    } */
-
     T& operator[](const index_type& index)
     {
         return fData[make_index(index, false)];
@@ -342,7 +344,99 @@ public:
     item_type operator[](size_t i) const
     {
         return G4MultiArrayImpl<T, N>::get_const_item(*this, i);
+    }   
+
+    G4MultiArray& operator*= (const G4MultiArray& other) 
+    {
+        if (fShape != other.fShape)
+        {
+            throw std::runtime_error("Incompatible shapes for multiplication.");
+        }
+        fData *= other;
+        return *this;        
+    }
+
+    G4MultiArray& operator*= (const T& other) 
+    {
+        fData *= other;   
+        return *this;   
     }    
+
+    template<typename U> G4MultiArray operator* (const U& other) const
+    {
+        auto result = Copy();
+        result *= other;
+        return result;
+    }
+
+    G4MultiArray& operator/= (const G4MultiArray& other) 
+    {
+        if (fShape != other.fShape)
+        {
+            throw std::runtime_error("Incompatible shapes for multiplication.");
+        }
+        fData /= other;
+        return *this;        
+    }
+
+    G4MultiArray& operator/= (const T& other) 
+    {
+        fData /= other;   
+        return *this;   
+    }    
+
+    template<typename U> G4MultiArray operator/ (const U& other) const
+    {
+        auto result = Copy();
+        result /= other;
+        return result;
+    } 
+
+    G4MultiArray& operator+= (const G4MultiArray& other) 
+    {
+        if (fShape != other.fShape)
+        {
+            throw std::runtime_error("Incompatible shapes for multiplication.");
+        }
+        fData += other;
+        return *this;        
+    }
+
+    G4MultiArray& operator+= (const T& other) 
+    {
+        fData += other;   
+        return *this;   
+    }    
+
+    template<typename U> G4MultiArray operator+ (const U& other) const
+    {
+        auto result = Copy();
+        result += other;
+        return result;
+    }   
+
+    G4MultiArray& operator-= (const G4MultiArray& other) 
+    {
+        if (fShape != other.fShape)
+        {
+            throw std::runtime_error("Incompatible shapes for multiplication.");
+        }
+        fData -= other;
+        return *this;        
+    }
+
+    G4MultiArray& operator-= (const T& other) 
+    {
+        fData -= other;   
+        return *this;   
+    }    
+
+    template<typename U> G4MultiArray operator- (const U& other) const
+    {
+        auto result = Copy();
+        result -= other;
+        return result;
+    }       
 
 private:
     static size_t get_product(const index_type& arr)
@@ -482,6 +576,10 @@ public:
 
     G4MultiArrayView& operator=(const typename G4MultiArrayImpl<T, N, M>::nested_vector_type& nested_vector)
     {
+        if (fShape[0] != nested_vector.size())
+        {
+            throw std::runtime_error("Nested vector used to initialize G4MultiArray must be regular");
+        }
         for (size_t i = 0; i < fShape[0]; i++)
         {
             (*this)[i] = nested_vector[i];
@@ -601,6 +699,26 @@ private:
 
     size_t fSize;
 };
+
+template<typename T, size_t N> G4MultiArray<T, N> operator*(const T& t, const G4MultiArray<T, N>& array)
+{
+    return array * t;
+}
+
+template<typename T, size_t N> G4MultiArray<T, N> operator/(const T& t, const G4MultiArray<T, N>& array)
+{
+    return array / t;
+}
+
+template<typename T, size_t N> G4MultiArray<T, N> operator+(const T& t, const G4MultiArray<T, N>& array)
+{
+    return array + t;
+}
+
+template<typename T, size_t N> G4MultiArray<T, N> operator-(const T& t, const G4MultiArray<T, N>& array)
+{
+    return array - t;
+}
 
 template<typename T, size_t N> std::ostream& operator << (std::ostream& os, const G4MultiArray<T, N>& array)
 {
