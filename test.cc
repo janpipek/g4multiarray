@@ -1,4 +1,5 @@
 #include "G4MultiArray.hh"
+#include "G4MultiArrayTools.hh"
 
 #include <valarray>
 #include <iostream>
@@ -83,5 +84,5 @@ int main()
 	}};
 	cout << arr8 * 3 << endl;
 
-	cout << (3.14 * arr8 - 58) << endl;
+	cout << (3.14 * tanh(arr8) - 58) << endl;
 }
