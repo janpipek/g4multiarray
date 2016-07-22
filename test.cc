@@ -85,4 +85,12 @@ int main()
 	cout << arr8 * 3 << endl;
 
 	cout << (3.14 * tanh(arr8) - 58) << endl;
+
+	cout << dot(arr8[0], arr8[1]) << endl;
+
+	G4MultiArray<double, 1> arr9 {{
+		1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+	}};
+
+	cout << outer(sqrt(arr9), arr9) << endl;
 }
