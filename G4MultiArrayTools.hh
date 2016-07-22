@@ -160,5 +160,19 @@ template<typename T, size_t N, size_t M> G4MultiArray<T, N+M> outer(const G4Mult
     return { shape, std::move(newData) };
 }
 
+// As numpy.linspace
+template<typename T> G4MultiArray<T, 1> linspace(const T& start, const T& stop, size_t num, bool endpoint = true)
+{
+    std::valarray<T> data(num);
+    T step = (stop - start) / (endpoint ? (num - 1) : num);
+    for (size_t i = 0; i < num; i++)
+    {
+        data[i] = start + i * step;
+    }
+    if (endpoint) { data[num-1] = stop; } // To make the endpoint precise
+    return { { num }, std::move(data) };
+}
+
+
 #endif // ! G4MultiArrayTools_h
 

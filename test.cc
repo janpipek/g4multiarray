@@ -88,9 +88,7 @@ int main()
 
 	cout << dot(arr8[0], arr8[1]) << endl;
 
-	G4MultiArray<double, 1> arr9 {{
-		1, 2, 3, 4, 5, 6, 7, 8, 9, 10
-	}};
+	auto numbers = linspace(1, 10, 10);
 
-	cout << outer(sqrt(arr9), arr9) << endl;
+	cout << outer(sqrt(numbers.As<double>()), numbers.As<double>()) << endl;
 }
