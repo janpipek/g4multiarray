@@ -91,4 +91,6 @@ int main()
 	auto numbers = linspace(1, 10, 10);
 
 	cout << outer(sqrt(numbers.As<double>()), numbers.As<double>()) << endl;
+
+	cout << tanh(G4MultiArray<double, 1>(arr8[0])) << endl;
 }

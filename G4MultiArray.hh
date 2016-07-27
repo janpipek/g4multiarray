@@ -122,6 +122,8 @@ namespace g4_multi_array
 
         using item_type = typename G4MultiArrayImpl<T, N>::item_type;
 
+		using nested_vector_type = typename G4MultiArrayImpl<T, N>::nested_vector_type;
+
         using view_type = G4MultiArrayView<T, N, N>;
 
         constexpr static size_t Ndim = N;
@@ -220,7 +222,7 @@ namespace g4_multi_array
             update_shape();
         }
 
-        G4MultiArray(const typename G4MultiArrayImpl<T, N>::nested_vector_type& nested_vector)
+        G4MultiArray(const nested_vector_type& nested_vector)
         {
             fShape = G4MultiArrayImpl<T, N>::get_shape(nested_vector);
             fData = data_type(get_product(fShape));
@@ -244,6 +246,11 @@ namespace g4_multi_array
             fShape(other.fShape), fData(other.fData), fSize(other.fSize), fStrides(other.fStrides)
         {
         }
+
+		/* template <size_t N2> G4MultiArray(const G4MultiArrayView<T, N2, N>& other)
+		{
+			*this = other;
+		}*/
 
         G4MultiArray& operator=(G4MultiArray&& other)
         {
