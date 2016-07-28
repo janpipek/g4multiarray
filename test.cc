@@ -1,5 +1,7 @@
-#include "G4MultiArray.hh"
-#include "G4MultiArrayTools.hh"
+// #include "G4MultiArray.hh"
+// #include "G4MultiArrayTools.hh"
+
+#include "multi_array.hh"
 
 #include <valarray>
 #include <iostream>
@@ -8,6 +10,32 @@ using namespace std;
 
 int main()
 {
+	multi_array<double, 2> x({5,7});
+
+	x[{4, 3}] = 4.1;
+
+	for (int i = 0; i < 5; i++)
+	{
+		x[i].Copy().Write(std::cout);
+		cout << endl;
+	}
+
+	// cout << x[4][3] << endl;
+
+	cout << endl;
+
+	// x[4].Write(std::cout);
+
+	// cout << x[{4, 6}];
+
+	multi_array<double, 2> y{x};
+
+	y.Copy().Write(std::cout);
+}
+
+int main2()
+{
+	/*
 	valarray<double> x = {-1, 2, 3, -4, 5, 6};
 	G4MultiArray<double, 2> arr{{2, 3}, x};
 	arr = exp(abs(arr));
@@ -92,5 +120,5 @@ int main()
 
 	cout << outer(sqrt(numbers.As<double>()), numbers.As<double>()) << endl;
 
-	cout << tanh(G4MultiArray<double, 1>(arr8[0])) << endl;
+	cout << tanh(G4MultiArray<double, 1>(arr8[0])) << endl;*/
 }

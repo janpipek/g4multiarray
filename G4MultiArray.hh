@@ -164,12 +164,12 @@ namespace g4_multi_array
         using nested_vector_type = std::vector<T>;
     };
 
-    template<typename T> class multi_array_storage     // This means a view
+    template<typename U> class multi_array_storage                     // This means a view
     {
     public:
-        using data_type = T;
+        using data_type = U;
 
-        using real_data_type = T::value_type&;
+        using real_data_type = U::value_type&;
 
     protected:
         multi_array_storage(real_data_type data) : fData(data) { }
@@ -194,48 +194,25 @@ namespace g4_multi_array
         real_data_type fData;
     };
 
-    template<typename T, size_t N, template<typename> typename arrayT> class multi_array_accessor 
-        : protected multi_array_storage<arrayT<T>>,
-          public multi_array_subtypes<T, N>  // This means a view
+    template<size_t N> class multi_array_accessor
     {
-    protected:
-        using multi_array_storage::multi_array_storage;
+    public:
+        template<typename T, template<typename> typename arrayT> const multi_array_subtypes<T, N>::item_type get_item(multi_array_base<T, N, arrayT>& arr, size_t i)
+        {
+            return multi_array_subtypes<T, N>::item_type(arr, i);
+        }
     };
 
-    template<typename T, size_t N> class multi_array_accessor<T, N, std::valarray<T>> 
-        : protected multi_array_storage<std::valarray<T>>
-          public multi_array_subtypes<T, N> // This means real data owner
+    template<> class multi_array_accessor<1>
     {
-    protected:
-        using multi_array_storage::multi_array_storage;
-    };
-
-    template<typename T, template<typename> typename arrayT> class multi_array_accessor<T, 1, arrayT> 
-        : protected multi_array_storage<arrayT<T>>
-          public multi_array_subtypes<T, 1> // This means a view
-    {
-    protected:
-        using multi_array_storage::multi_array_storage;
-
     public:
 
     };   
 
-    template<typename T> class multi_array_accessor<T, 1, std::valarray<T>> 
-        : protected multi_array_storage<std::valarray<T>>
-          public multi_array_subtypes<T, 1>    // This means real data owner
+    template<typename T> class multi_array_accessor<T, 1, std::valarray<T>>      // This means real data owner
     {           // TODO: Maybe not necessary?
-    protected:
-        using multi_array_storage::multi_array_storage;
-
     public:
-        const data_type& get_data() const { return fData; }
-
-        data_type get_data() { return fData; }
-
-        const T& get_item(size_t i) const { return fData[i]; }
-
-        T& get_item(size_t i) { return fData[i]; }
+        static const T& get_item(size_t i) const { return fData[i]; }
     };        
 
     template<typename T, size_t N, template<typename> typename arrayT> class multi_array_base
