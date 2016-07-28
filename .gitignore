@@ -27,3 +27,10 @@
 *.exe
 *.out
 *.app
+
+# Visual Studio
+Debug/
+*.VC.*
+.vs/
+*.sln
+*.vcxproj*
