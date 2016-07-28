@@ -19,6 +19,8 @@ namespace g4_multi_array
 {
     // Forward-declare the types
     template<typename T, size_t N> class G4MultiArray;
+	template<typename T, size_t N, template<typename> arrayT> typename multi_array;
+
     template<typename T, size_t N, size_t M> class G4MultiArrayView;
 
     template<typename T, size_t N, size_t M = N> class G4MultiArrayImpl
@@ -108,31 +110,198 @@ namespace g4_multi_array
 
     // TODO: use std::stride & std::gstride
 
+	template<typename T, size_t N> class multi_array_types
+	{
+	public:
+		using item_type = multi_array<T, N - 1, std::gslice_array>;
+
+		using masked_type = multi_array<T, 1, std::mask_array>;
+
+		using indirect_type = multi_array<T, 1, std::indirect_array>;
+
+		using nested_vector_type = std::vector<typename multi_array_types<T, N - 1>::nested_vector_type>;
+	};
+
+	template<size_t N> size_t get_product(const std::array<size_t, N>& arr)
+	{
+		size_t total = 1;
+		for (size_t i = 0; i < N; i++)
+		{
+			total *= arr[i];
+		}
+		return total;
+	}
+
+	template<size_t N> std::array<size_t, N> get_strides(const std::array<size_t, N>& arr)
+	{
+		index_type result;
+		result[N - 1] = 1;
+		for (size_t i = 1; i < N; i++)
+		{
+			result[N - 1 - i] = result[N - i] * arr[N - i];
+		}
+		return result;
+	}
+
+	template<size_t N> std::gslice get_gslice(size_t offset, std::array<size_t, N> shape, std::array<size_t, N> strides)
+	{
+		std::valarray<size_t> shape_(N);
+		std::valarray<size_t> strides_(N);
+		std::copy(shape.begin(), shape.end(), std::begin(shape_));
+		std::copy(strides.begin(), strides.end(), std::begin(strides_));
+		return std::gslice(offset, shape_, strides_);
+	}
+
+	template<typename T> class multi_array_types<T, 1>
+	{
+	public:
+		using item_type = T&;
+
+		using masked_type = multi_array<T, 1, std::mask_array>;
+
+		using indirect_type = multi_array<T, 1, std::indirect_array>;
+
+		using nested_vector_type = std::vector<T>;
+	};
+
+	template<typename T, size_t N, template<typename> typename arrayT = std::valarray> class multi_array_base
+	{
+	public:    // *** Type definitions
+		static_assert(N > 0, "Cannot have 0-dimensional arrays");
+
+		using index_type = std::array<size_t, N>;
+
+		using value_type = T;
+
+		using data_type = arrayT<T>;
+
+		using item_type = typename multi_array_types<T, N>::item_type;
+
+		using nested_vector_type = typename multi_array_types<T, N>::nested_vector_type;
+
+		constexpr static size_t ndim = N;
+
+	public:    // *** Friends
+		template<typename, size_t> friend std::ostream& operator << (std::ostream&, const multi_array_base&);
+
+	protected:    // *** Constructors
+		multi_array_base() { }
+
+	public:    // *** Functions
+		size_t Size() const { return fSize; }
+
+		const index_type& Shape() const { return fShape; }
+
+		const data_type& Data() const { return fData; }
+
+		multi_array<T, N> Copy() const { return multi_array<T, N>(*this); }
+
+	public:    // *** Item access
+		item_type operator[](size_t i)
+		{
+			return G4MultiArrayImpl<T, N>::get_item(*this, i);
+		}
+
+		item_type operator[](size_t i) const
+		{
+			return G4MultiArrayImpl<T, N>::get_const_item(*this, i);
+		}
+
+	protected:   // *** Data
+		data_type fData;
+
+		index_type fStrides;
+
+		index_type fShape;
+
+		size_t fSize;
+
+		size_t fOffset{ 0 };
+	};
+
+	template<typename T, size_t N> class multi_array  final : public multi_array_base<T, N, std::valarray>
+	{
+	public:
+		// TODO: Reimplement constructors via a parent constructor
+
+		multi_array(const index_type& shape, const T& value)
+		{
+			fShape = shape;
+			fSize = get_product(shape);
+			fData = data_type(value, fSize);
+			fStrides = get_strides(shape);
+		}
+
+		explicit multi_array(const index_type& shape)
+		{
+			fShape = shape;
+			fSize = get_product(shape);
+			fData = data_type(fSize);
+			fStrides = get_strides(shape);
+		}
+
+		multi_array(const index_type& shape, const data_type& data)
+		{
+			fSize = get_product(shape);
+			if (fSize != data.size())
+			{
+				throw std::runtime_error("Incompatible shape.");
+			}
+			fData = data;
+			fShape = shape;
+			fStrides = get_strides(shape);
+		}
+
+		multi_array(const index_type& shape, const T* data)
+		{
+			fShape = shape;
+			fData = data_type(data, get_product(shape));
+			fSize = get_product(shape);
+			fStrides = get_strides(shape);
+		}
+
+		template<template <typename> arrayT> multi_array(const multi_array_base<T, N, arrayT>& other)
+		{
+			fData = other.Data();
+			fShape = other.Shape();
+			fStrides = get_strides(shape);
+			fSize = get_product(fShape);
+		}
+
+		multi_array(const nested_vector_type& nested_vector)
+		{
+			// TODO: Finish implementation
+			/* fShape = G4MultiArrayImpl<T, N>::get_shape(nested_vector); */
+			fData = data_type(get_product(fShape));
+			// update_shape();
+
+			for (size_t i = 0; i < fShape[0]; i++)
+			{
+				(*this)[i] = nested_vector[i];
+			}
+		}
+
+		// TODO: Include multi_array_base&& constructor
+		// TODO: Include data_typee&& constructor
+	};
+
+	template<typename T, size_t N> class multi_array_view : public multi_array_base<T, N, std::gslice_array> final
+	{
+	public: 
+
+	};
+
     // TODO: Include copy-on-write function (thread-safe?)
     template<typename T, size_t N> class G4MultiArray final
     {
     public:
-        static_assert(N > 0, "Cannot have 0-dimensional arrays");
+        
 
-        using index_type = std::array<size_t, N>;
-
-        using value_type = T;
-
-        using data_type = std::valarray<T>;
-
-        using item_type = typename G4MultiArrayImpl<T, N>::item_type;
-
-		using nested_vector_type = typename G4MultiArrayImpl<T, N>::nested_vector_type;
-
-        using view_type = G4MultiArrayView<T, N, N>;
-
-        constexpr static size_t Ndim = N;
-
-        template<typename, size_t, size_t> friend class G4MultiArrayView;
+        /*template<typename, size_t, size_t> friend class G4MultiArrayView;
 
         template<typename, size_t, size_t> friend class G4MultiArrayImpl;
 
-        template<typename, size_t> friend std::ostream& operator << (std::ostream&, const G4MultiArray&);
+        template<typename, size_t> friend std::ostream& operator << (std::ostream&, const G4MultiArray&); */
 
         void Write(std::ostream& os) const
         {
@@ -195,63 +364,6 @@ namespace g4_multi_array
             os << "])";
         }
 
-        G4MultiArray(const index_type& shape, const T& value) :
-            fShape(shape),
-            fData(value, get_product(shape)),
-            fSize(get_product(shape)),
-            fStrides(get_strides(shape))
-        { }
-
-        G4MultiArray(const index_type& shape) :
-            fShape(shape),
-            fData(get_product(shape)),
-            fSize(get_product(shape)),
-            fStrides(get_strides(shape))
-        { }
-
-        G4MultiArray(const index_type& shape, const T* data) :
-            fShape(shape),
-            fData(data, get_product(shape)),
-            fSize(get_product(shape)),
-            fStrides(get_strides(shape))
-        { }
-
-        G4MultiArray(const index_type& shape, const data_type& data) :
-            fShape(shape), fData(data)
-        {
-            update_shape();
-        }
-
-        G4MultiArray(const nested_vector_type& nested_vector)
-        {
-            fShape = G4MultiArrayImpl<T, N>::get_shape(nested_vector);
-            fData = data_type(get_product(fShape));
-            update_shape();
-
-            for (size_t i = 0; i < fShape[0]; i++)
-            {
-                (*this)[i] = nested_vector[i];
-            }
-        }
-
-        //template<size_t... Ms> G4MultiArray()
-
-        G4MultiArray(const index_type& shape, data_type&& data) :
-            fShape(shape), fData(data)
-        {
-            update_shape();
-        }
-
-        G4MultiArray(const G4MultiArray& other) :
-            fShape(other.fShape), fData(other.fData), fSize(other.fSize), fStrides(other.fStrides)
-        {
-        }
-
-		/* template <size_t N2> G4MultiArray(const G4MultiArrayView<T, N2, N>& other)
-		{
-			*this = other;
-		}*/
-
         G4MultiArray& operator=(G4MultiArray&& other)
         {
             std::swap(fData, other.fData);
@@ -272,18 +384,7 @@ namespace g4_multi_array
             fData = value;
             return *this;
         }
-
-        size_t Size() const { return fSize; }
-
-        const index_type& Shape() const { return fShape; }
-
-        const data_type& Flatten() const { return fData; }
-
-        G4MultiArray Copy() const
-        {
-            return G4MultiArray<T, N>(fShape, fData);
-        }
-
+		
         template<typename U> G4MultiArray<U, N> As() const
         {
             std::valarray<U> result;
@@ -333,15 +434,7 @@ namespace g4_multi_array
             return fData[make_index(index, false)];
         }
 
-        item_type operator[](size_t i)
-        {
-            return G4MultiArrayImpl<T, N>::get_item(*this, i);
-        }
 
-        item_type operator[](size_t i) const
-        {
-            return G4MultiArrayImpl<T, N>::get_const_item(*this, i);
-        }
 
         G4MultiArray& operator*= (const G4MultiArray& other)
         {
@@ -436,26 +529,7 @@ namespace g4_multi_array
         }
 
     private:
-        static size_t get_product(const index_type& arr)
-        {
-            size_t total = 1;
-            for (size_t i = 0; i < N; i++)
-            {
-                total *= arr[i];
-            }
-            return total;
-        }
-
-        index_type get_strides(const index_type& arr)
-        {
-            index_type result;
-            result[N - 1] = 1;
-            for (size_t i = 1; i < N; i++)
-            {
-                result[N - 1 - i] = result[N - i] * arr[N - i];
-            }
-            return result;
-        }
+        static 
 
         void update_shape()
         {
@@ -609,17 +683,7 @@ namespace g4_multi_array
         {
             data_type data = fArray.fData[get_gslice(fGlobalOffset, fShape, fStrides)];
             return G4MultiArray<T, M>(fShape, std::move(data));
-        }
-
-        G4MultiArray<T, M> Copy() const
-        {
-            return G4MultiArray<T, M>(*this);   // Uses reference???
-        }
-
-        data_type Flatten() const
-        {
-            return Copy().Flatten();   // Uses reference???
-        }        
+        } 
 
         item_type operator[](size_t i)
         {
@@ -631,19 +695,11 @@ namespace g4_multi_array
             return G4MultiArrayImpl<T, N, M>::get_const_item(*this, i);
         }
 
-        const index_type& Shape() const { return fShape; }
 
         // const data_type& Flatten() const { return fData; }
 
     private:
-        static std::gslice get_gslice(size_t offset, index_type shape, index_type strides)
-        {
-            std::valarray<size_t> shape_(M);
-            std::valarray<size_t> strides_(M);
-            std::copy(shape.begin(), shape.end(), std::begin(shape_));
-            std::copy(strides.begin(), strides.end(), std::begin(strides_));
-            return std::gslice(offset, shape_, strides_);
-        }
+        static 
 
         size_t make_index(const index_type& arr, bool check_index = true) const
         {
