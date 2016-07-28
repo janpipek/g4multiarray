@@ -19,7 +19,7 @@ namespace g4_multi_array
 {
     // Forward-declare the types
     template<typename T, size_t N> class G4MultiArray;
-	template<typename T, size_t N, template<typename> arrayT> typename multi_array;
+    template<typename T, size_t N, template<typename> arrayT> typename multi_array;
 
     template<typename T, size_t N, size_t M> class G4MultiArrayView;
 
@@ -110,229 +110,284 @@ namespace g4_multi_array
 
     // TODO: use std::stride & std::gstride
 
-	template<size_t N> size_t get_product(const std::array<size_t, N>& arr)
-	{
-		size_t total = 1;
-		for (size_t i = 0; i < N; i++)
-		{
-			total *= arr[i];
-		}
-		return total;
-	}
+    template<size_t N> size_t get_product(const std::array<size_t, N>& arr)
+    {
+        size_t total = 1;
+        for (size_t i = 0; i < N; i++)
+        {
+            total *= arr[i];
+        }
+        return total;
+    }
 
-	template<size_t N> std::array<size_t, N> get_strides(const std::array<size_t, N>& arr)
-	{
-		index_type result;
-		result[N - 1] = 1;
-		for (size_t i = 1; i < N; i++)
-		{
-			result[N - 1 - i] = result[N - i] * arr[N - i];
-		}
-		return result;
-	}
+    template<size_t N> std::array<size_t, N> get_strides(const std::array<size_t, N>& arr)
+    {
+        index_type result;
+        result[N - 1] = 1;
+        for (size_t i = 1; i < N; i++)
+        {
+            result[N - 1 - i] = result[N - i] * arr[N - i];
+        }
+        return result;
+    }
 
-	template<size_t N> std::gslice get_gslice(size_t offset, std::array<size_t, N> shape, std::array<size_t, N> strides)
-	{
-		std::valarray<size_t> shape_(N);
-		std::valarray<size_t> strides_(N);
-		std::copy(shape.begin(), shape.end(), std::begin(shape_));
-		std::copy(strides.begin(), strides.end(), std::begin(strides_));
-		return std::gslice(offset, shape_, strides_);
-	}
+    template<size_t N> std::gslice get_gslice(size_t offset, std::array<size_t, N> shape, std::array<size_t, N> strides)
+    {
+        std::valarray<size_t> shape_(N);
+        std::valarray<size_t> strides_(N);
+        std::copy(shape.begin(), shape.end(), std::begin(shape_));
+        std::copy(strides.begin(), strides.end(), std::begin(strides_));
+        return std::gslice(offset, shape_, strides_);
+    }
 
-	template<typename T, size_t N> class multi_array_subtypes
-	{
-	public:
-		using item_type = multi_array<T, N - 1, std::gslice_array>;
+    template<typename T, size_t N> class multi_array_subtypes
+    {
+    public:
+        using item_type = multi_array<T, N - 1, std::gslice_array>;
 
-		using masked_type = multi_array<T, 1, std::mask_array>;
+        using masked_type = multi_array<T, 1, std::mask_array>;
 
-		using indirect_type = multi_array<T, 1, std::indirect_array>;
+        using indirect_type = multi_array<T, 1, std::indirect_array>;
 
-		using nested_vector_type = std::vector<typename multi_array_subtypes<T, N - 1>::nested_vector_type>;
-	};
+        using nested_vector_type = std::vector<typename multi_array_subtypes<T, N - 1>::nested_vector_type>;
+    };
 
-	template<typename T> class multi_array_subtypes<T, 1>
-	{
-	public:
-		using item_type = T&;
+    template<typename T> class multi_array_subtypes<T, 1>
+    {
+    public:
+        using item_type = T&;
 
-		using masked_type = multi_array<T, 1, std::mask_array>;
+        using masked_type = multi_array<T, 1, std::mask_array>;
 
-		using indirect_type = multi_array<T, 1, std::indirect_array>;
+        using indirect_type = multi_array<T, 1, std::indirect_array>;
 
-		using nested_vector_type = std::vector<T>;
-	};
+        using nested_vector_type = std::vector<T>;
+    };
 
-	template<typename T> class multi_array_storage
-	{
-	public:
-		using real_data_type = std::valarray<T>&;
-	};
+    template<typename T> class multi_array_storage     // This means a view
+    {
+    public:
+        using data_type = T;
 
-	template<typename T> class multi_array_storage<std::valarray<T>>
-	{
-	public:
-		using real_data_type = std::valarray<T>;
-	};
+        using real_data_type = T::value_type&;
 
-	template<typename T, size_t N, template<typename> typename arrayT> class multi_array_accessor
-	{
-		
-	};
+    protected:
+        multi_array_storage(real_data_type data) : fData(data) { }
 
-	template<typename T, size_t N, template<typename> typename arrayT> class multi_array_base
-		: protected multi_array_subtypes<T, N>,
-		  protected multi_array_storage<arrayT<T>>,
-		  protected multi_array_accessor<T, N, array<T>>
-	{
-	public:    // *** Type definitions
-		static_assert(N > 0, "Cannot have 0-dimensional arrays");
+        real_data_type fData;
+    };
 
-		using index_type = std::array<size_t, N>;
+    template<typename T> class multi_array_storage<std::valarray<T>>   // This means real data owner
+    {
+    public:
+        using data_type = std::valarray<T>;
 
-		using value_type = T;
+        using real_data_type = std::valarray<T>;
 
-		using data_type = arrayT<T>;
+    protected:
+        multi_array_storage(const real_data_type& data) : fData(data) { }
 
-		using multi_array_storage<data_type>::real_data_type;
+        multi_array_storage(real_data_type&& data) : fData(data) { }
 
-		using multi_array_subtypes<T, N>::item_type;
+        multi_array_storage() = default;
 
-		using multi_array_subtypes<T, N>::nested_vector_type;
+        real_data_type fData;
+    };
 
-		constexpr static size_t ndim = N;
+    template<typename T, size_t N, template<typename> typename arrayT> class multi_array_accessor 
+        : protected multi_array_storage<arrayT<T>>,
+          public multi_array_subtypes<T, N>  // This means a view
+    {
+    protected:
+        using multi_array_storage::multi_array_storage;
+    };
 
-	public:    // *** Friends
-		template<typename, size_t> friend std::ostream& operator << (std::ostream&, const multi_array_base&);
+    template<typename T, size_t N> class multi_array_accessor<T, N, std::valarray<T>> 
+        : protected multi_array_storage<std::valarray<T>>
+          public multi_array_subtypes<T, N> // This means real data owner
+    {
+    protected:
+        using multi_array_storage::multi_array_storage;
+    };
 
-	protected:    // *** Constructors
-		multi_array_base() { }
+    template<typename T, template<typename> typename arrayT> class multi_array_accessor<T, 1, arrayT> 
+        : protected multi_array_storage<arrayT<T>>
+          public multi_array_subtypes<T, 1> // This means a view
+    {
+    protected:
+        using multi_array_storage::multi_array_storage;
 
-		multi_array_base(real_data_type& data, const index_type& shape, size_t offset, const index_type& strides)
-			: fData(data), fShape(shape), fOffset(offset), fStrides(strides), fSize(get_product(shape))
-		{
-			if (data.size() != fSize)
-			{
-				throw std::runtime_error("Invalid size of data.");
-			}
-		}
+    public:
 
-	public:    // *** Functions
-		size_t Size() const { return fSize; }
+    };   
 
-		const index_type& Shape() const { return fShape; }
+    template<typename T> class multi_array_accessor<T, 1, std::valarray<T>> 
+        : protected multi_array_storage<std::valarray<T>>
+          public multi_array_subtypes<T, 1>    // This means real data owner
+    {           // TODO: Maybe not necessary?
+    protected:
+        using multi_array_storage::multi_array_storage;
 
-		const data_type& Data() const { return fData; }
+    public:
+        const data_type& get_data() const { return fData; }
 
-		multi_array<T, N> Copy() const { return multi_array<T, N>(*this); }
+        data_type get_data() { return fData; }
 
-	public:    // *** Item access
-		/* item_type operator[](size_t i)
-		{
-			return G4MultiArrayImpl<T, N>::get_item(*this, i);
-		}
-		*/
+        const T& get_item(size_t i) const { return fData[i]; }
 
-		/*item_type operator[](size_t i) const
-		{
-			return G4MultiArrayImpl<T, N>::get_const_item(*this, i);
-		}*/
+        T& get_item(size_t i) { return fData[i]; }
+    };        
 
-	protected:   // *** Data
-		real_data_type fData;
+    template<typename T, size_t N, template<typename> typename arrayT> class multi_array_base
+        : protected multi_array_accessor<T, N, array<T>>
+    {
+    public:    // *** Type definitions
+        static_assert(N > 0, "Cannot have 0-dimensional arrays");
 
-		index_type fStrides;
+        using index_type = std::array<size_t, N>;
 
-		index_type fShape;
+        using value_type = T;
 
-		size_t fSize;
+        using data_type = arrayT<T>;
 
-		size_t fOffset{ 0 };
-	};
+        using multi_array_storage<data_type>::real_data_type;
 
-	template<typename T, size_t N> class multi_array final : public multi_array_base<T, N, std::valarray>
-	{
-	public:
-		using base_type = multi_array_base<T, N, std::valarray>;
+        using multi_array_subtypes<T, N>::item_type;
 
-		explicit multi_array(const index_type& shape)
-			: base_type(
-				real_data_type(get_product(shape)),
-				shape,
-				0,
-				get_strides(shape))
-		{ }
+        using multi_array_subtypes<T, N>::nested_vector_type;
 
-		multi_array(const index_type& shape, const data_type& data)
-			: base_type(
-				data,
-				shape,
-				0,
-				get_strides(shape))
-		{}
+        constexpr static size_t ndim = N;
 
-		multi_array(const index_type& shape, const T& value)
-			: base_type(
-				real_data_type(value, get_product(shape)),
-				shape,
-				0,
-				get_strides(shape))
-		{ }
+    public:    // *** Friends
+        template<typename, size_t> friend std::ostream& operator << (std::ostream&, const multi_array_base&);
 
-		multi_array(const index_type& shape, const T* data)
-			: base_type(
-				real_data_type(data, get_product(shape)),
-				shape,
-				0,
-				get_strides(shape)
-			)
-		{ }
+    protected:    // *** Constructors
+        multi_array_base() { }
 
-		template<template <typename> arrayT> multi_array(const multi_array_base<T, N, arrayT>& other)
-			: base_type(
-				other.Data(),
-				other.Shape(),
-				0,
-				get_product(other.Shape())
-			)
-		{ }
+        multi_array_base(real_data_type& data, const index_type& shape, size_t offset, const index_type& strides)
+            : fData(data), fShape(shape), fOffset(offset), fStrides(strides), fSize(get_product(shape))
+        {
+            if (data.size() != fSize)
+            {
+                throw std::runtime_error("Invalid size of data.");
+            }
+        }
 
-		/* multi_array(const nested_vector_type& nested_vector)
-		{
-			// TODO: Finish implementation
-			fShape = G4MultiArrayImpl<T, N>::get_shape(nested_vector);
-			fData = data_type(get_product(fShape));
-			// update_shape();
+    public:    // *** Functions
+        size_t Size() const { return fSize; }
 
-			for (size_t i = 0; i < fShape[0]; i++)
-			{
-				(*this)[i] = nested_vector[i];
-			}
-		}*/
+        const index_type& Shape() const { return fShape; }
 
-		// TODO: Include multi_array_base&& constructor
-		// TODO: Include data_typee&& constructor
-	};
+        const data_type& Data() const { return get_data(); }
 
-	template<typename T, size_t N> class multi_array_view : public multi_array_base<T, N, std::gslice_array> final
-	{
-	public: 
-		using base_type = multi_array_base<T, N, std::gslice_array>;
+        multi_array<T, N> Copy() const { return multi_array<T, N>(*this); }
 
-		template<template<typename> typename arrayT> multi_array_view(multi_array_base<T, N, arrayT>& upper, size_t i)
-		{
-			for (size_t i = 0; i < N; i++)
-			{
-				fShape[i] = upper.fShape[i + 1];
-				fStrides[i] = upper.fStrides[i + 1];
-			}
-			// fOffsets[0] = i;
-			fGlobalOffset = upper.fGlobalOffset + i * upper.fStrides[0];
+    public:    // *** Item access
+        /* item_type operator[](size_t i)
+        {
+            return G4MultiArrayImpl<T, N>::get_item(*this, i);
+        }
+        */
 
-			// update_gslice();
-		}
-	};
+        /*item_type operator[](size_t i) const
+        {
+            return G4MultiArrayImpl<T, N>::get_const_item(*this, i);
+        }*/
+
+    protected:   // *** Data
+        real_data_type fData;
+
+        index_type fStrides;
+
+        index_type fShape;
+
+        size_t fSize;
+
+        size_t fOffset{ 0 };
+    };
+
+    template<typename T, size_t N> class multi_array final : public multi_array_base<T, N, std::valarray>
+    {
+    public:
+        using base_type = multi_array_base<T, N, std::valarray>;
+
+        explicit multi_array(const index_type& shape)
+            : base_type(
+                real_data_type(get_product(shape)),
+                shape,
+                0,
+                get_strides(shape))
+        { }
+
+        multi_array(const index_type& shape, const data_type& data)
+            : base_type(
+                data,
+                shape,
+                0,
+                get_strides(shape))
+        {}
+
+        multi_array(const index_type& shape, const T& value)
+            : base_type(
+                real_data_type(value, get_product(shape)),
+                shape,
+                0,
+                get_strides(shape))
+        { }
+
+        multi_array(const index_type& shape, const T* data)
+            : base_type(
+                real_data_type(data, get_product(shape)),
+                shape,
+                0,
+                get_strides(shape)
+            )
+        { }
+
+        template<template <typename> arrayT> multi_array(const multi_array_base<T, N, arrayT>& other)
+            : base_type(
+                other.Data(),
+                other.Shape(),
+                0,
+                get_product(other.Shape())
+            )
+        { }
+
+        /* multi_array(const nested_vector_type& nested_vector)
+        {
+            // TODO: Finish implementation
+            fShape = G4MultiArrayImpl<T, N>::get_shape(nested_vector);
+            fData = data_type(get_product(fShape));
+            // update_shape();
+
+            for (size_t i = 0; i < fShape[0]; i++)
+            {
+                (*this)[i] = nested_vector[i];
+            }
+        }*/
+
+        // TODO: Include multi_array_base&& constructor
+        // TODO: Include data_typee&& constructor
+    };
+
+    template<typename T, size_t N> class multi_array_view : public multi_array_base<T, N, std::gslice_array> final
+    {
+    public: 
+        using base_type = multi_array_base<T, N, std::gslice_array>;
+
+        template<template<typename> typename arrayT> multi_array_view(multi_array_base<T, N, arrayT>& upper, size_t i)
+        {
+            for (size_t i = 0; i < N; i++)
+            {
+                fShape[i] = upper.fShape[i + 1];
+                fStrides[i] = upper.fStrides[i + 1];
+            }
+            // fOffsets[0] = i;
+            fGlobalOffset = upper.fGlobalOffset + i * upper.fStrides[0];
+
+            // update_gslice();
+        }
+    };
 
     // TODO: Include copy-on-write function (thread-safe?)
     template<typename T, size_t N> class G4MultiArray final
@@ -427,7 +482,7 @@ namespace g4_multi_array
             fData = value;
             return *this;
         }
-		
+        
         template<typename U> G4MultiArray<U, N> As() const
         {
             std::valarray<U> result;
