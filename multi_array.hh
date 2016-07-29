@@ -178,12 +178,12 @@ public:
 
     template<template<typename, size_t> class data_policy> static const_item_type get_const_item(const multi_array_base<T, 1, data_policy>& array, size_t i)
     {
-		return array[std::array<size_t, 1>{i}];
+        return array[std::array<size_t, 1>{i}];
     }
 
-	template<template<typename, size_t> class data_policy> static item_type get_item(multi_array_base<T, 1, data_policy>& array, size_t i)
-	{
-		return array[std::array<size_t, 1>{i}];
+    template<template<typename, size_t> class data_policy> static item_type get_item(multi_array_base<T, 1, data_policy>& array, size_t i)
+    {
+        return array[std::array<size_t, 1>{i}];
     }
 };
 
@@ -206,23 +206,6 @@ public:
     template<typename, size_t> friend class multi_array_view_const;
     // template<typename, size_t> friend std::ostream& operator << (std::ostream&, const multi_array_base&);
 
-	// Operators
-	multi_array_base& operator=(const T& value)
-	{
-		get_data_array() = value;
-		return *this;
-	}
-
-	template<template <typename, size_t> class data_policy> multi_array_base& operator=(const multi_array_base<T, N, data_policy>& other)
-	{
-		if (other.fShape != fShape)
-		{
-			throw std::runtime_error("Cannot assign data of different shapes.");
-		}
-		get_data_array() = other.Data();
-		return *this;
-	}
-
 protected:
     // Import members
     using index_impl<N>::fStrides;
@@ -231,8 +214,25 @@ protected:
     using index_impl<N>::fOffset;
     using base_type::fData;
     using index_impl<N>::make_index;
+    using base_type::get_data_array;
 
     using base_type::base_type;
+
+    multi_array_base& operator=(const T& value)
+    {
+        get_data_array() = value;
+        return *this;
+    }
+
+    template<template <typename, size_t> class data_policy2> multi_array_base& operator=(const multi_array_base<T, N, data_policy2>& other)
+    {
+        if (other.fShape != fShape)
+        {
+            throw std::runtime_error("Cannot assign data of different shapes.");
+        }
+        get_data_array() = other.Data();
+        return *this;
+    }    
 
 public:
     template<typename U> multi_array<T, N> operator*(const U& other) const
@@ -242,26 +242,26 @@ public:
         return result;
     }
 
-	template<typename U> multi_array<T, N> operator/(const U& other) const
-	{
-		auto result = Copy();
-		result /= other;
-		return result;
-	}
+    template<typename U> multi_array<T, N> operator/(const U& other) const
+    {
+        auto result = Copy();
+        result /= other;
+        return result;
+    }
 
-	template<typename U> multi_array<T, N> operator+(const U& other) const
-	{
-		auto result = Copy();
-		result += other;
-		return result;
-	}
+    template<typename U> multi_array<T, N> operator+(const U& other) const
+    {
+        auto result = Copy();
+        result += other;
+        return result;
+    }
 
-	template<typename U> multi_array<T, N> operator-(const U& other) const
-	{
-		auto result = Copy();
-		result -= other;
-		return result;
-	}
+    template<typename U> multi_array<T, N> operator-(const U& other) const
+    {
+        auto result = Copy();
+        result -= other;
+        return result;
+    }
 
 public:
     T& operator[] (const index_type& i) { return fData[make_index(i)]; }
@@ -274,29 +274,33 @@ public:
 
     multi_array<T, N> Copy() const { return multi_array<T, N>(*this); }
 
-	// Conversion
-	template<typename U> multi_array<U, N> As() const
-	{
-		std::valarray<U> result;
-		result.resize(fSize);
-		for (size_t i = 0; i < fSize; i++)
-		{
-			result[i] = U(fData[i]);
-		}
-		return multi_array<U, N>(fShape, std::move(result));
-	}
+    // Conversion
+    template<typename U> multi_array<U, N> As() const
+    {
+        std::valarray<U> result;
+        result.resize(fSize);
+        for (size_t i = 0; i < fSize; i++)
+        {
+            result[i] = U(fData[i]);
+        }
+        return multi_array<U, N>(fShape, std::move(result));
+    }
 
-	multi_array_view_const<T, N> ReadOnly() const
-	{
-		return multi_array_view_const<T, N>(*this);
-	}
+    multi_array_view_const<T, N> ReadOnly() const
+    {
+        return multi_array_view_const<T, N>(*this);
+    }
 };
 
 template<typename T, size_t N> class multi_array : public multi_array_base<T, N, array_owner_impl>
 {
 public:
     // Type aliases
-    using base_type = multi_array_base;
+    #ifdef __GNUC__
+        using base_type = multi_array_base<T, N, array_owner_impl>;
+    #else
+        using base_type = multi_array_base;
+    #endif
     using typename base_type::index_type;
     using typename base_type::data_type;    // std::valarray<T>
 
@@ -308,8 +312,9 @@ protected:
     using index_impl<N>::fSize;
     using index_impl<N>::fOffset;
     using base_type::fData;
+    using base_type::get_data_array;
 
-	using base_type::operator=;
+    using base_type::operator=;
 
 public:
     explicit multi_array(const index_type& shape)
@@ -343,70 +348,70 @@ public:
         )
     { }
 
-	// Operators
-	template<template <typename, size_t> class data_policy> multi_array& operator*= (const multi_array_base<T, N, data_policy>& other)
-	{
-		if (fShape != other.fShape)
-		{
-			throw std::runtime_error("Incompatible shapes for multiplication.");
-		}
-		get_data_array() *= other.get_data_array();
-		return *this;
-	}
+    // Operators
+    template<template <typename, size_t> class data_policy> multi_array& operator*= (const multi_array_base<T, N, data_policy>& other)
+    {
+        if (fShape != other.fShape)
+        {
+            throw std::runtime_error("Incompatible shapes for multiplication.");
+        }
+        get_data_array() *= other.get_data_array();
+        return *this;
+    }
 
-	multi_array& operator*= (const T& other)
-	{
-		get_data_array() *= other;
-		return *this;
-	}
+    multi_array& operator*= (const T& other)
+    {
+        get_data_array() *= other;
+        return *this;
+    }
 
-	template<template <typename, size_t> class data_policy> multi_array& operator/= (const multi_array_base<T, N, data_policy>& other)
-	{
-		if (fShape != other.fShape)
-		{
-			throw std::runtime_error("Incompatible shapes for division.");
-		}
-		get_data_array() /= other.get_data_array();
-		return *this;
-	}
+    template<template <typename, size_t> class data_policy> multi_array& operator/= (const multi_array_base<T, N, data_policy>& other)
+    {
+        if (fShape != other.fShape)
+        {
+            throw std::runtime_error("Incompatible shapes for division.");
+        }
+        get_data_array() /= other.get_data_array();
+        return *this;
+    }
 
-	multi_array& operator/= (const T& other)
-	{
-		get_data_array() /= other;
-		return *this;
-	}
+    multi_array& operator/= (const T& other)
+    {
+        get_data_array() /= other;
+        return *this;
+    }
 
-	template<template <typename, size_t> class data_policy> multi_array& operator+= (const multi_array_base<T, N, data_policy>& other)
-	{
-		if (fShape != other.fShape)
-		{
-			throw std::runtime_error("Incompatible shapes for addition.");
-		}
-		get_data_array() += other.get_data_array();
-		return *this;
-	}
+    template<template <typename, size_t> class data_policy> multi_array& operator+= (const multi_array_base<T, N, data_policy>& other)
+    {
+        if (fShape != other.fShape)
+        {
+            throw std::runtime_error("Incompatible shapes for addition.");
+        }
+        get_data_array() += other.get_data_array();
+        return *this;
+    }
 
-	multi_array& operator+= (const T& other)
-	{
-		get_data_array() += other;
-		return *this;
-	}
+    multi_array& operator+= (const T& other)
+    {
+        get_data_array() += other;
+        return *this;
+    }
 
-	template<template <typename, size_t> class data_policy> multi_array& operator-= (const multi_array_base<T, N, data_policy>& other)
-	{
-		if (fShape != other.fShape)
-		{
-			throw std::runtime_error("Incompatible shapes for subtraction.");
-		}
-		get_data_array() -= other.get_data_array();
-		return *this;
-	}
+    template<template <typename, size_t> class data_policy> multi_array& operator-= (const multi_array_base<T, N, data_policy>& other)
+    {
+        if (fShape != other.fShape)
+        {
+            throw std::runtime_error("Incompatible shapes for subtraction.");
+        }
+        get_data_array() -= other.get_data_array();
+        return *this;
+    }
 
-	multi_array& operator-= (const T& other)
-	{
-		get_data_array() -= other;
-		return *this;
-	}
+    multi_array& operator-= (const T& other)
+    {
+        get_data_array() -= other;
+        return *this;
+    }
 
 
     void Write(std::ostream& os) const; // TODO: Generalize
@@ -416,14 +421,18 @@ template<typename T, size_t N> class multi_array_view : public multi_array_base<
 {
 public:
     // Type aliases
-    using base_type = multi_array_base;
+    #ifdef __GNUC__
+        using base_type = multi_array_base<T, N, array_view_impl>;
+    #else
+        using base_type = multi_array_base;
+    #endif
     using typename base_type::index_type;
     using typename base_type::data_type;    // std::valarray<T>
 
-	// Import members
-	using base_type::operator=;
+    // Import members
+    using base_type::operator=;
 
-	// Constructor for selecting items
+    // Constructor for selecting items
     template<template<typename, size_t> class data_policy> multi_array_view(multi_array_base<T, N+1, data_policy>& upper, size_t i)
         : base_type(
             upper.fData,
@@ -433,82 +442,89 @@ public:
         )
     { }
 
-	// TODO: Add constructor for selecting items in any axis
-	// TODO: Add constructor for selecting slices...
+protected:
+    // Import members
+    using base_type::fShape;
+    using base_type::fSize;
+    using base_type::get_data_array;
 
-	// Constructor for reshaping of existing arrays
-	template<size_t M, template<typename, size_t> class data_policy> multi_array_view(multi_array_base<T, M, data_policy>& upper, const index_type& shape, const index_type& strides, size_t offset = 0)
-		: base_type(
-			upper.fData,
-			shape,
-			strides,
-			offset
-		)
-	{	}
+    // TODO: Add constructor for selecting items in any axis
+    // TODO: Add constructor for selecting slices...
 
-	template<template <typename, size_t> class data_policy> multi_array_view& operator*= (const multi_array_base<T, N, data_policy>& other)
-	{
-		if (fShape != other.fShape)
-		{
-			throw std::runtime_error("Incompatible shapes for multiplication.");
-		}
-		get_data_array() *= other.Data();
-		return *this;
-	}
+    // Constructor for reshaping of existing arrays
+    template<size_t M, template<typename, size_t> class data_policy> multi_array_view(multi_array_base<T, M, data_policy>& upper, const index_type& shape, const index_type& strides, size_t offset = 0)
+        : base_type(
+            upper.fData,
+            shape,
+            strides,
+            offset
+        )
+    {   }
 
-	multi_array_view& operator*= (const T& other)
-	{
-		get_data_array() *= std::valarray<T>(other, fSize);
-		return *this;
-	}
+public:
+    template<template <typename, size_t> class data_policy> multi_array_view& operator*= (const multi_array_base<T, N, data_policy>& other)
+    {
+        if (fShape != other.fShape)
+        {
+            throw std::runtime_error("Incompatible shapes for multiplication.");
+        }
+        get_data_array() *= other.Data();
+        return *this;
+    }
 
-	template<template <typename, size_t> class data_policy> multi_array_view& operator/= (const multi_array_base<T, N, data_policy>& other)
-	{
-		if (fShape != other.fShape)
-		{
-			throw std::runtime_error("Incompatible shapes for division.");
-		}
-		get_data_array() /= other.Data();
-		return *this;
-	}
+    multi_array_view& operator*= (const T& other)
+    {
+        get_data_array() *= std::valarray<T>(other, fSize);
+        return *this;
+    }
 
-	multi_array_view& operator/= (const T& other)
-	{
-		get_data_array() /= std::valarray<T>(other, fSize);
-		return *this;
-	}
+    template<template <typename, size_t> class data_policy> multi_array_view& operator/= (const multi_array_base<T, N, data_policy>& other)
+    {
+        if (fShape != other.fShape)
+        {
+            throw std::runtime_error("Incompatible shapes for division.");
+        }
+        get_data_array() /= other.Data();
+        return *this;
+    }
 
-	template<template <typename, size_t> class data_policy> multi_array_view& operator+= (const multi_array_base<T, N, data_policy>& other)
-	{
-		if (fShape != other.fShape)
-		{
-			throw std::runtime_error("Incompatible shapes for addition.");
-		}
-		get_data_array() += other.Data();
-		return *this;
-	}
+    multi_array_view& operator/= (const T& other)
+    {
+        get_data_array() /= std::valarray<T>(other, fSize);
+        return *this;
+    }
 
-	multi_array_view& operator+= (const T& other)
-	{
-		get_data_array() += std::valarray<T>(other, fSize);
-		return *this;
-	}
+    template<template <typename, size_t> class data_policy> multi_array_view& operator+= (const multi_array_base<T, N, data_policy>& other)
+    {
+        if (fShape != other.fShape)
+        {
+            throw std::runtime_error("Incompatible shapes for addition.");
+        }
+        get_data_array() += other.Data();
+        return *this;
+    }
 
-	template<template <typename, size_t> class data_policy> multi_array_view& operator-= (const multi_array_base<T, N, data_policy>& other)
-	{
-		if (fShape != other.fShape)
-		{
-			throw std::runtime_error("Incompatible shapes for subtraction.");
-		}
-		get_data_array() -= other.Data();
-		return *this;
-	}
+    multi_array_view& operator+= (const T& other)
+    {
+        get_data_array() += std::valarray<T>(other, fSize);
+        return *this;
+    }
 
-	multi_array_view& operator-= (const T& other)
-	{
-		get_data_array() -= std::valarray<T>(other, fSize);
-		return *this;
-	}
+    template<template <typename, size_t> class data_policy> multi_array_view& operator-= (const multi_array_base<T, N, data_policy>& other)
+    {
+        if (fShape != other.fShape)
+        {
+            throw std::runtime_error("Incompatible shapes for subtraction.");
+        }
+        get_data_array() -= other.Data();
+        return *this;
+    }
+
+    multi_array_view& operator-= (const T& other)
+    {
+        get_data_array() -= std::valarray<T>(other, fSize);
+        return *this;
+    }
 
 private:
     template<template<typename, size_t> class data_policy> static index_type get_shape(const multi_array_base<T, N+1, data_policy>& upper, size_t i)
@@ -541,46 +557,50 @@ private:
 template<typename T, size_t N> class multi_array_view_const : public multi_array_base<T, N, array_const_view_impl>
 {
 public:
-	// Type aliases
-	using base_type = multi_array_base;
-	using typename base_type::index_type;
-	using typename base_type::data_type;    // std::valarray<T>
+    // Type aliases
+    #ifdef __GNUC__
+        using base_type = multi_array_base<T, N, array_const_view_impl>;
+    #else
+        using base_type = multi_array_base;
+    #endif
+    using typename base_type::index_type;
+    using typename base_type::data_type;    // std::valarray<T>
 
-	// Import members
-	using index_impl<N>::fStrides;
-	using index_impl<N>::fShape;
-	using index_impl<N>::fSize;
-	using index_impl<N>::fOffset;
-	using base_type::fData;
+    // Import members
+    using index_impl<N>::fStrides;
+    using index_impl<N>::fShape;
+    using index_impl<N>::fSize;
+    using index_impl<N>::fOffset;
+    using base_type::fData;
 
-	// Read-only view with the same properties
-	template<template<typename, size_t> class data_policy> multi_array_view_const(const multi_array_base<T, N, data_policy>& other)
-		: base_type(
-			other.fData,
-			other.fShape,
-			other.fStrides,
-			other.fOffset
-		)
-	{	}
+    // Read-only view with the same properties
+    template<template<typename, size_t> class data_policy> multi_array_view_const(const multi_array_base<T, N, data_policy>& other)
+        : base_type(
+            other.fData,
+            other.fShape,
+            other.fStrides,
+            other.fOffset
+        )
+    {   }
 
-	template<size_t M, template<typename, size_t> class data_policy> multi_array_view_const(const multi_array_base<T, M, data_policy>& upper, const index_type& shape, const index_type& strides, size_t offset = 0)
-		: base_type(
-			upper.fData,
-			shape,
-			strides,
-			offset
-		)
-	{	}
+    template<size_t M, template<typename, size_t> class data_policy> multi_array_view_const(const multi_array_base<T, M, data_policy>& upper, const index_type& shape, const index_type& strides, size_t offset = 0)
+        : base_type(
+            upper.fData,
+            shape,
+            strides,
+            offset
+        )
+    {   }
 };
 
 template<typename U, typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> operator* (const U& x, const multi_array_base<T, N, data_policy>& y)
 {
-	return y * x;
+    return y * x;
 }
 
 template<typename U, typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> operator+ (const U& x, const multi_array_base<T, N, data_policy>& y)
 {
-	return y + x;
+    return y + x;
 }
 
 template<typename T, size_t N> void multi_array<T, N>::Write(std::ostream& os) const
