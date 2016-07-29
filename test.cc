@@ -10,22 +10,59 @@ using namespace std;
 
 int main()
 {
-	multi_array<double, 2> x({5,7});
+	// Basic array
+	auto a = linspace<double>(1, 5, 5, true);   // -> {[1, 2, 3, 4, 5]}
+	cout << a << endl;
 
-	x[{4, 3}] = 4.1;
+	// Operations
+	cout << a * 2 << endl;                      // -> {[2, 4, 6, 8, 10]}  
 
-	x[4][2] = 4.22;
+	cout << pow(2, a) << endl;                  // -> {[2, 4, 8, 16, 32]}
+	
+	multi_array<double, 2> x({3,3});
+
+	cout << multi_array<double, 2>({3, 3}, 1) << endl;
+
+	x = 79;
+
+	//x[{4, 3}] = 4.1;
+
+	x[2][2] = 4.22;
 
 	auto z = x[2];
 
-	z = 6.7;
+	z = 22;
+
+	z[1] = 6.7;
+
+	try
+	{
+		z[7] = 4;
+	}
+	catch(std::runtime_error&)
+	{
+		cout << "z[7] threw an error (correctly)." << endl;
+	}
+
+	// z = x[1];  -- not working yet
+
+	cout << x << endl;
+
+	cout << z << endl;
+
+	// return 0;
+
+	
 
 	x *= 4;
 
+
+
 	z *= 17;
 
-	(4.7 + z / 2).Write(cout);
-	cout << endl;
+	cout << x << endl;
+
+	cout << (4.7 - z / 2) << endl;
 
 	// cout << x[4][3] << endl;
 
@@ -41,9 +78,13 @@ int main()
 
 	y.ReadOnly().As<int>();
 
-	y.Copy().Write(std::cout);
+	cout << y.Copy() << endl;
 
-	y.As<int>().Write(std::cout);
+	cout << y.As<int>() << endl;
+
+	cout << pow(abs(exp(sin(y))), 5) << endl;
+
+	cout << atan2(y, y) << endl;
 
 	return 0;
 }

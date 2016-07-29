@@ -107,6 +107,16 @@ public:
 protected:
     std::valarray<T>& get_data_array() { return fData; }
 
+    void set_data(const std::valarray<T>& other)
+    {
+        fData = other;
+    }
+
+    void set_data(const T& other)
+    {
+        fData = other;
+    }       
+
     data_type fData;
 };
 
@@ -117,6 +127,7 @@ public:
 
     // Type aliases
     using data_type = typename std::conditional<is_const, const std::valarray<T>&, std::valarray<T>&>::type;
+    // using data_array_type = typename std::conditional<is_const, std::valarray<T>, std::gslice_array<T>>::type;
     using base_type = index_impl<N>;
     using typename base_type::index_type;
 
@@ -136,16 +147,30 @@ public:
 private:
     std::gslice get_gslice_() const
     {
-        return get_gslice(fOffset, fShape, fStrides);
+        auto slice = get_gslice(fOffset, fShape, fStrides);
+        return slice;
     }
 
 protected:
     data_type fData;
 
-    auto get_data_array() -> decltype(this->fData[std::gslice()])
+    /*data_array_type get_data_array() 
+    // Does not work with gcc :-()
+    //auto get_data_array() -> decltype(this->fData[std::gslice()])
     {
-        return fData[get_gslice_()];
+        auto slize = get_gslice_();
+        return fData[slize];
+    }*/
+
+    void set_data(const std::valarray<T>& other)
+    {
+        fData[get_gslice_()] = other;
     }
+
+    void set_data(const T& other)
+    {
+        fData[get_gslice_()] = other;
+    }    
 };
 
 
@@ -206,6 +231,9 @@ public:
     template<typename, size_t> friend class multi_array_view_const;
     // template<typename, size_t> friend std::ostream& operator << (std::ostream&, const multi_array_base&);
 
+    // Import members
+    using base_type::Data;
+
 protected:
     // Import members
     using index_impl<N>::fStrides;
@@ -213,16 +241,21 @@ protected:
     using index_impl<N>::fSize;
     using index_impl<N>::fOffset;
     using base_type::fData;
+    
     using index_impl<N>::make_index;
-    using base_type::get_data_array;
+    // using base_type::get_data_array;
+    using base_type::set_data;
 
     using base_type::base_type;
 
     multi_array_base& operator=(const T& value)
     {
-        get_data_array() = value;
+        set_data(value);
         return *this;
     }
+
+    /* multi_array_base& operator=(const multi_array_base&) = delete;
+    multi_array_base& operator=(const multi_array_base&&) = delete;*/
 
     template<template <typename, size_t> class data_policy2> multi_array_base& operator=(const multi_array_base<T, N, data_policy2>& other)
     {
@@ -230,7 +263,7 @@ protected:
         {
             throw std::runtime_error("Cannot assign data of different shapes.");
         }
-        get_data_array() = other.Data();
+        set_data(other.Data());
         return *this;
     }    
 
@@ -278,10 +311,11 @@ public:
     template<typename U> multi_array<U, N> As() const
     {
         std::valarray<U> result;
+        auto data = Data();
         result.resize(fSize);
         for (size_t i = 0; i < fSize; i++)
         {
-            result[i] = U(fData[i]);
+            result[i] = U(data[i]);
         }
         return multi_array<U, N>(fShape, std::move(result));
     }
@@ -289,6 +323,18 @@ public:
     multi_array_view_const<T, N> ReadOnly() const
     {
         return multi_array_view_const<T, N>(*this);
+    }
+
+    multi_array<T, N> Apply(std::function<T(T)> f) const
+    {
+        std::valarray<T> result;
+        auto data = Data();
+        result.resize(fSize);
+        for (size_t i = 0; i < fSize; i++)
+        {
+            result[i] = f(data[i]);
+        }
+        return multi_array<T, N>(fShape, std::move(result));     
     }
 };
 
@@ -314,9 +360,9 @@ protected:
     using base_type::fData;
     using base_type::get_data_array;
 
+public:
     using base_type::operator=;
 
-public:
     explicit multi_array(const index_type& shape)
         : base_type(
             data_type(get_product(shape)),
@@ -446,7 +492,9 @@ protected:
     // Import members
     using base_type::fShape;
     using base_type::fSize;
-    using base_type::get_data_array;
+    // using base_type::get_data_array;
+    using base_type::Data;
+    using base_type::set_data;
 
     // TODO: Add constructor for selecting items in any axis
     // TODO: Add constructor for selecting slices...
@@ -468,13 +516,16 @@ public:
         {
             throw std::runtime_error("Incompatible shapes for multiplication.");
         }
-        get_data_array() *= other.Data();
+        set_data(Data() * other.Data());
+        // Note: for other compilers, this should work:
+        //   get_data_array() *= other.Data();
+        //   See: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=62119 - or other gcc bug related to gslice_array copy constructor
         return *this;
     }
 
     multi_array_view& operator*= (const T& other)
     {
-        get_data_array() *= std::valarray<T>(other, fSize);
+        set_data(Data() * other);
         return *this;
     }
 
@@ -484,13 +535,13 @@ public:
         {
             throw std::runtime_error("Incompatible shapes for division.");
         }
-        get_data_array() /= other.Data();
+        set_data(Data() / other.Data());
         return *this;
     }
 
     multi_array_view& operator/= (const T& other)
     {
-        get_data_array() /= std::valarray<T>(other, fSize);
+        set_data(Data() / other);
         return *this;
     }
 
@@ -500,13 +551,13 @@ public:
         {
             throw std::runtime_error("Incompatible shapes for addition.");
         }
-        get_data_array() += other.Data();
+        set_data(Data() + other.Data());
         return *this;
     }
 
     multi_array_view& operator+= (const T& other)
     {
-        get_data_array() += std::valarray<T>(other, fSize);
+        set_data(Data() + other);
         return *this;
     }
 
@@ -516,13 +567,13 @@ public:
         {
             throw std::runtime_error("Incompatible shapes for subtraction.");
         }
-        get_data_array() -= other.Data();
+        set_data(Data() - other.Data());
         return *this;
     }
 
     multi_array_view& operator-= (const T& other)
     {
-        get_data_array() -= std::valarray<T>(other, fSize);
+        set_data(Data() - other);
         return *this;
     }
 
@@ -598,9 +649,19 @@ template<typename U, typename T, size_t N, template<typename, size_t> class data
     return y * x;
 }
 
+/*template<typename U, typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> operator/ (const U& x, const multi_array_base<T, N, data_policy>& y)
+{
+    return y * x;
+}*/
+
 template<typename U, typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> operator+ (const U& x, const multi_array_base<T, N, data_policy>& y)
 {
     return y + x;
+}
+
+template<typename U, typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> operator- (const U& x, const multi_array_base<T, N, data_policy>& y)
+{
+    return (-1 * y) + x;
 }
 
 template<typename T, size_t N> void multi_array<T, N>::Write(std::ostream& os) const
@@ -626,7 +687,7 @@ template<typename T, size_t N> void multi_array<T, N>::Write(std::ostream& os) c
                     {
                         os << "\n";
                     }
-                    os << "               ";
+                    os << "  ";
                     for (size_t k = 0; k < j; k++)
                     {
                         os << " ";
@@ -661,7 +722,127 @@ template<typename T, size_t N> void multi_array<T, N>::Write(std::ostream& os) c
             os << ", ";
         }
     }
-    os << "}";
+    os << "]}";
+}
+
+template<typename T, size_t N> std::ostream& operator<< (std::ostream& os, const multi_array<T, N>& array)
+{
+    array.Write(os);
+    return os;
+}
+
+template<typename T, size_t N> std::ostream& operator<< (std::ostream& os, const multi_array_view<T, N>& array)
+{
+    array.Copy().Write(os);
+    return os;
+}
+
+template<typename T, size_t N> std::ostream& operator<< (std::ostream& os, const multi_array_view_const<T, N>& array)
+{
+    array.Copy().Write(os);
+    return os;
+}
+
+template<typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> abs(const multi_array_base<T, N, data_policy>& arr)
+{
+    return arr.Apply((double(*)(double))&std::abs);
+}
+
+template<typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> exp(const multi_array_base<T, N, data_policy>& arr)
+{
+    return arr.Apply((double(*)(double))&std::exp);
+}
+
+template<typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> log(const multi_array_base<T, N, data_policy>& arr)
+{
+    return arr.Apply((double(*)(double))&std::log);
+}
+
+template<typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> log10(const multi_array_base<T, N, data_policy>& arr)
+{
+    return arr.Apply((double(*)(double))&std::log10);
+}
+
+template<typename T, size_t N, template<typename, size_t> class data_policy, typename U> multi_array<T, N> pow(const multi_array_base<T, N, data_policy>& arr, const U& exponential)
+{
+    return multi_array<T, N>(arr.Shape(), std::move(std::pow(arr.Data(), T(exponential))));
+}
+
+template<typename T, size_t N, template<typename, size_t> class data_policy, typename U> multi_array<T, N> pow(const U& base, const multi_array_base<T, N, data_policy>& arr)
+{
+    return multi_array<T, N>(arr.Shape(), std::move(std::pow(T(base), arr.Data())));
+}
+
+template<typename T, size_t N, template<typename, size_t> class data_policy1, template<typename, size_t> class data_policy2> multi_array<T, N> pow(const multi_array_base<T, N, data_policy1>& arr1, const multi_array_base<T, N, data_policy1>& arr2)
+{
+    return multi_array<T, N>(arr1.Shape(), std::move(std::pow(arr1.Data(), arr2.Data())));
+}
+
+template<typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> sqrt(const multi_array_base<T, N, data_policy>& arr)
+{
+    return arr.Apply((double(*)(double))&std::sqrt);
+}
+
+template<typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> sin(const multi_array_base<T, N, data_policy>& arr)
+{
+    return arr.Apply((double(*)(double))&std::sin);
+}
+
+template<typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> cos(const multi_array_base<T, N, data_policy>& arr)
+{
+    return arr.Apply((double(*)(double))&std::cos);
+}
+
+template<typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> tan(const multi_array_base<T, N, data_policy>& arr)
+{
+    return arr.Apply((double(*)(double))&std::tan);
+}
+
+template<typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> asin(const multi_array_base<T, N, data_policy>& arr)
+{
+    return arr.Apply((double(*)(double))&std::asin);
+}
+
+template<typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> acos(const multi_array_base<T, N, data_policy>& arr)
+{
+    return arr.Apply((double(*)(double))&std::acos);
+}
+
+template<typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> atan(const multi_array_base<T, N, data_policy>& arr)
+{
+    return arr.Apply((double(*)(double))&std::atan);
+}
+
+template<typename T, size_t N, template<typename, size_t> class data_policy1, template<typename, size_t> class data_policy2> multi_array<T, N> atan2(const multi_array_base<T, N, data_policy1>& arr1, const multi_array_base<T, N, data_policy2>& arr2)
+{
+    return multi_array<T, N>(arr1.Shape(), std::move(std::atan2(arr1.Data(), arr2.Data())));
+}
+
+template<typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> sinh(const multi_array_base<T, N, data_policy>& arr)
+{
+    return arr.Apply((double(*)(double))&std::sinh);
+}
+
+template<typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> cosh(const multi_array_base<T, N, data_policy>& arr)
+{
+    return arr.Apply((double(*)(double))&std::cosh);
+}
+
+template<typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> tanh(const multi_array_base<T, N, data_policy>& arr)
+{
+    return arr.Apply((double(*)(double))&std::tanh);
+}
+
+template<typename T> multi_array<T, 1> linspace(const T& start, const T& stop, size_t num, bool endpoint = true)
+{
+    std::valarray<T> data(num);
+    T step = (stop - start) / (endpoint ? (num - 1) : num);
+    for (size_t i = 0; i < num; i++)
+    {
+        data[i] = start + i * step;
+    }
+    if (endpoint) { data[num-1] = stop; } // To make the endpoint precise
+    return { { num }, std::move(data) };
 }
 
 #endif
