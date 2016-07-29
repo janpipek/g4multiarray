@@ -20,6 +20,8 @@ int main()
 
 	z = 6.7;
 
+	x *= 4;
+
 	// cout << x[4][3] << endl;
 
 	// x.Write(std::cout);
@@ -32,8 +34,11 @@ int main()
 
 	multi_array<double, 2> y{x};
 
+	y.ReadOnly().As<int>();
+
 	y.Copy().Write(std::cout);
 
+	y.As<int>().Write(std::cout);
 
 	return 0;
 }
