@@ -14,13 +14,15 @@ int main()
 
 	x[{4, 3}] = 4.1;
 
-	for (int i = 0; i < 5; i++)
-	{
-		x[i].Copy().Write(std::cout);
-		cout << endl;
-	}
+	x[4][2] = 4.22;
+
+	auto z = x[2];
+
+	z = 6.7;
 
 	// cout << x[4][3] << endl;
+
+	// x.Write(std::cout);
 
 	cout << endl;
 
@@ -31,10 +33,14 @@ int main()
 	multi_array<double, 2> y{x};
 
 	y.Copy().Write(std::cout);
+
+
+	return 0;
 }
 
 int main2()
 {
+	return 0;
 	/*
 	valarray<double> x = {-1, 2, 3, -4, 5, 6};
 	G4MultiArray<double, 2> arr{{2, 3}, x};

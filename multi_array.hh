@@ -178,12 +178,12 @@ public:
 
     template<template<typename, size_t> class data_policy> static const_item_type get_const_item(const multi_array_base<T, 1, data_policy>& array, size_t i)
     {
-        return array[{i}];
+		return array[std::array<size_t, 1>{i}];
     }
 
-    template<template<typename, size_t> class data_policy> static item_type get_item(multi_array_base<T, 1, data_policy>& array, size_t i)
-    {
-        return array[{i}];
+	template<template<typename, size_t> class data_policy> static item_type get_item(multi_array_base<T, 1, data_policy>& array, size_t i)
+	{
+		return array[std::array<size_t, 1>{i}];
     }    
 };
 
@@ -205,6 +205,19 @@ public:
     template<typename, size_t> friend class multi_array_view;
     template<typename, size_t> friend class multi_array_view_const;
     // template<typename, size_t> friend std::ostream& operator << (std::ostream&, const multi_array_base&);
+
+	// Operators
+	multi_array_base& operator=(const T& value)
+	{
+		get_data_array() = value;
+		return *this;
+	}
+
+	multi_array_base& operator=(const multi_array_base& other)
+	{
+		get_data_array() = other.Data();
+		return *this;
+	}
 
 protected:
     // Import members
@@ -233,7 +246,7 @@ template<typename T, size_t N> class multi_array : public multi_array_base<T, N,
 {
 public:
     // Type aliases
-    using base_type = multi_array_base<T, N, array_owner_impl>;
+    using base_type = multi_array_base;
     using typename base_type::index_type;
     using typename base_type::data_type;    // std::valarray<T>
 
@@ -244,6 +257,8 @@ protected:
     using index_impl<N>::fSize;
     using index_impl<N>::fOffset; 
     using base_type::fData;   
+
+	using base_type::operator=;
 
 public:
     explicit multi_array(const index_type& shape)
@@ -284,13 +299,14 @@ template<typename T, size_t N> class multi_array_view : public multi_array_base<
 {
 public:
     // Type aliases
-    using base_type = multi_array_base<T, N, array_view_impl>;
+    using base_type = multi_array_base;
     using typename base_type::index_type;
     using typename base_type::data_type;    // std::valarray<T>
 
-    //     t_array_view_impl(data_type data, const index_type& shape, const index_type& strides, size_t offset)
-    //    : base_type(shape, strides, offset), fData(data)
+	// Import members
+	using base_type::operator=;
 
+	// Constructor for selecting items
     template<template<typename, size_t> class data_policy> multi_array_view(multi_array_base<T, N+1, data_policy>& upper, size_t i)
         : base_type(
             upper.fData,
@@ -298,9 +314,20 @@ public:
             get_strides(upper, i),
             get_offset(upper, i)
         )
-    {
+    { }
 
-    }
+	// TODO: Add constructor for selecting items in any axis
+	// TODO: Add constructor for selecting slices...
+
+	// Constructor for reshaping of existing arrays
+	template<size_t M, template<typename, size_t> class data_policy> multi_array_view(multi_array_base<T, M, data_policy>& upper, const index_type& shape, const index_type& strides, size_t offset = 0)
+		: base_type(
+			upper.fData,
+			shape,
+			strides,
+			offset
+		)
+	{	}
 
 private:
     template<template<typename, size_t> class data_policy> static index_type get_shape(const multi_array_base<T, N+1, data_policy>& upper, size_t i)
@@ -325,7 +352,7 @@ private:
 
     template<template<typename, size_t> class data_policy> static size_t get_offset(const multi_array_base<T, N+1, data_policy>& upper, size_t i)
     {
-        return upper.fOffset + i * upper.fStrides[1];
+        return upper.fOffset + i * upper.fStrides[0];
     }   
 
 };
