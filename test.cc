@@ -22,6 +22,11 @@ int main()
 
 	x *= 4;
 
+	z *= 17;
+
+	(4.7 + z / 2).Write(cout);
+	cout << endl;
+
 	// cout << x[4][3] << endl;
 
 	// x.Write(std::cout);
