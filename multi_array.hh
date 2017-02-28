@@ -174,7 +174,6 @@ protected:
     }    
 };
 
-
 template<typename T, size_t N> using array_view_impl = t_array_view_impl<T, N, false>;
 
 template<typename T, size_t N> using array_const_view_impl = t_array_view_impl<T, N, true>;
@@ -271,28 +270,28 @@ protected:
 public:
     template<typename U> multi_array<T, N> operator*(const U& other) const
     {
-        auto result = Copy();
+        multi_array<T, N> result = Copy();
         result *= other;
         return result;
     }
 
     template<typename U> multi_array<T, N> operator/(const U& other) const
     {
-        auto result = Copy();
+        multi_array<T, N> result = Copy();
         result /= other;
         return result;
     }
 
     template<typename U> multi_array<T, N> operator+(const U& other) const
     {
-        auto result = Copy();
+        multi_array<T, N> result = Copy();
         result += other;
         return result;
     }
 
     template<typename U> multi_array<T, N> operator-(const U& other) const
     {
-        auto result = Copy();
+        multi_array<T, N> result = Copy();
         result -= other;
         return result;
     }
@@ -402,7 +401,7 @@ public:
         {
             throw std::runtime_error("Incompatible shapes for multiplication.");
         }
-        get_data_array() *= other.get_data_array();
+        get_data_array() *= other.Data();
         return *this;
     }
 
@@ -418,7 +417,7 @@ public:
         {
             throw std::runtime_error("Incompatible shapes for division.");
         }
-        get_data_array() /= other.get_data_array();
+        get_data_array() /= other.Data();
         return *this;
     }
 
@@ -434,7 +433,7 @@ public:
         {
             throw std::runtime_error("Incompatible shapes for addition.");
         }
-        get_data_array() += other.get_data_array();
+        get_data_array() += other.Data();
         return *this;
     }
 
@@ -450,7 +449,7 @@ public:
         {
             throw std::runtime_error("Incompatible shapes for subtraction.");
         }
-        get_data_array() -= other.get_data_array();
+        get_data_array() -= other.Data();
         return *this;
     }
 
@@ -645,7 +644,7 @@ public:
     {   }
 };
 
-template<typename U, typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> operator* (const U& x, const multi_array_base<T, N, data_policy>& y)
+template<typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> operator* (const T& x, const multi_array_base<T, N, data_policy>& y)
 {
     return y * x;
 }
@@ -655,14 +654,19 @@ template<typename U, typename T, size_t N, template<typename, size_t> class data
     return y * x;
 }*/
 
-template<typename U, typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> operator+ (const U& x, const multi_array_base<T, N, data_policy>& y)
+template<typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> operator+ (const T& x, const multi_array_base<T, N, data_policy>& y)
 {
     return y + x;
 }
 
-template<typename U, typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> operator- (const U& x, const multi_array_base<T, N, data_policy>& y)
+template<typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> operator- (const T& x, const multi_array_base<T, N, data_policy>& y)
 {
-    return (-1 * y) + x;
+    return -y + x;
+}
+
+template<typename T, size_t N, template<typename, size_t> class data_policy> multi_array<T, N> operator- (const multi_array_base<T, N, data_policy>& x)
+{
+    return T(-1) * x;
 }
 
 template<typename T, size_t N> void multi_array<T, N>::Write(std::ostream& os) const

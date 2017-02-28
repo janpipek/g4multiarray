@@ -14,6 +14,9 @@ int main()
 	auto a = linspace<double>(1, 5, 5, true);   // -> {[1, 2, 3, 4, 5]}
 	cout << a << endl;
 
+    cout << (a + a) << endl;
+    cout << (-a) << endl;
+
 	// Operations
 	cout << a * 2 << endl;                      // -> {[2, 4, 6, 8, 10]}  
 
@@ -34,6 +37,10 @@ int main()
 	z = 22;
 
 	z[1] = 6.7;
+
+    x[1] *= 2;
+
+    cout << x << endl;
 
 	try
 	{
