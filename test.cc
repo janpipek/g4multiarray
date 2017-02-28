@@ -1,6 +1,3 @@
-// #include "G4MultiArray.hh"
-// #include "G4MultiArrayTools.hh"
-
 #include "multi_array.hh"
 
 #include <valarray>
@@ -32,7 +29,7 @@ int main()
 
 	x[2][2] = 4.22;
 
-	auto z = x[2];
+    auto z = x[2];
 
 	z = 22;
 

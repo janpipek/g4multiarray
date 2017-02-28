@@ -1,5 +1,9 @@
+/// DEPRECATED, see multi_array.hh instead.
+
+
 /*
-    G4MultiArray class, representing N-dimensional data.
+
+G4MultiArray class, representing N-dimensional data.
 
     Written by: Jan Pipek (jan.pipek@gmail.com), 2016
  */
