@@ -22,7 +22,7 @@ template<size_t N> size_t get_product(const std::array<size_t, N>& arr)
     return total;
 }
 
-template<size_t N> struct slicer
+template<size_t N> struct slicer_base
 {
 public:
     static constexpr size_t new_dim(int M) { return (N == 1) ? (M-1) : M; }
@@ -31,13 +31,26 @@ public:
 
     // template<size_t M> using target_pair_type = std::pair<target_array_type<M>, target_array_type<M>>;
 
-    template<class... Ts> constexpr slicer(Ts... args)
+    template<class... Ts> constexpr slicer_base(Ts... args)
         : fNumbers({args...})
     {
         static_assert(N <= 3, "Cannot have slicer with dim > 3");
     }
 
-    template<size_t M> std::tuple<size_t, std::array<size_t, new_dim(M)>, std::array<size_t, new_dim(M)>> apply(size_t offset, std::array<size_t, M> shape, std::array<size_t, M> strides, size_t I)
+protected:
+    std::array<size_t, N> fNumbers;
+};
+
+template<size_t N> struct slicer : public slicer_base<N>
+{
+    using slicer_base<N>::new_dim;
+
+    using slicer_base<N>::slicer_base;
+
+    using slicer_base<N>::fNumbers;
+
+    template<size_t M> std::tuple<size_t, std::array<size_t, new_dim(M)>, std::array<size_t, new_dim(M)>>
+        apply(size_t offset, std::array<size_t, M> shape, std::array<size_t, M> strides, size_t I)
     {
         if (N == 0)
         {
@@ -49,38 +62,49 @@ public:
             std::array<size_t, new_dim(M)> newShape;
             std::array<size_t, new_dim(M)> newStrides;
 
-            if (N == 1)
+            size_t iStride = (N == 2) ? 1 : fNumbers[2];
+            for (int i = 0; i < I; i++)
             {
-                for (int i = 0; i < I; i++)
-                {
-                    newShape[i] = shape[i];
-                    newStrides[i] = strides[i] * shape[I];
-                }
-                for (int j = I; j < new_dim(M); j++)
-                {
-                    newShape[j] = shape[j+1];
-                    newStrides[j] = strides[j+1];
-                }
+                newShape[i] = shape[i];
+                newStrides[i] = strides[i] * iStride;
             }
-            else
+            for (int j = I; j < new_dim(M); j++)
             {
-                size_t iStride = (N == 2) ? 1 : fNumbers[2];
-                for (int i = 0; i < I; i++)
-                {
-                    newShape[i] = shape[i];
-                    newStrides[i] = strides[i] * iStride;
-                }
-                for (int j = I; j < new_dim(M); j++)
-                {
-                    newShape[j] = shape[j+1];
-                    newStrides[j] = strides[j+1];
-                }
+                newShape[j] = shape[j+1];
+                newStrides[j] = strides[j+1];
             }
+
+            return std::make_tuple(newOffset, newShape, newStrides);
         }
     }
+};
 
-private:
-    std::array<size_t, N> fNumbers;
+template<> struct slicer<1> : public slicer_base<1>
+{
+    using slicer_base<1>::new_dim;
+
+    using slicer_base<1>::slicer_base;
+
+    using slicer_base<1>::fNumbers;
+
+    template<size_t M> std::tuple<size_t, std::array<size_t, new_dim(M)>, std::array<size_t, new_dim(M)>>
+        apply(size_t offset, std::array<size_t, M> shape, std::array<size_t, M> strides, size_t I)
+    {
+        size_t newOffset = offset + strides[I] * fNumbers[1];
+        std::array<size_t, new_dim(M)> newShape;
+        std::array<size_t, new_dim(M)> newStrides;
+        for (int i = 0; i < I; i++)
+        {
+            newShape[i] = shape[i];
+            newStrides[i] = strides[i] * shape[I];
+        }
+        for (int j = I; j < new_dim(M); j++)
+        {
+            newShape[j] = shape[j+1];
+            newStrides[j] = strides[j+1];
+        }
+        return std::make_tuple(newOffset, newShape, newStrides);     // All things equal :-)
+    }
 };
 
 template<class... Ts> constexpr slicer<(sizeof...(Ts))> make_slicer(Ts... others)
