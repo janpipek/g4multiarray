@@ -7,6 +7,25 @@ using namespace std;
 
 int main()
 {
+    auto chessboard = linspace(1, 64, 64).Resize<2>({8, 8});
+    cout << chessboard << endl;
+
+    cout << "Select 4th row" << endl;
+    cout << chessboard.apply_index<0>(3) << endl;
+
+    cout << "Select last two columns" << endl;
+    cout << chessboard.apply_index<1>(6, 8) << endl;
+
+    cout << "Select middle square" << endl;
+    cout << chessboard.apply_index<1>(3, 5).apply_index<0>(3, 5) << endl;
+
+    // THIS FAILS!
+    cout << "Select 4 edge squares" << endl;
+    cout << chessboard.apply_index<1>(0, 8, 7).apply_index<0>(0, 8, 2) << endl;
+}
+
+int main4()
+{
     cout << make_slicer(3, 4, 3).new_dim(3) << endl;
 
     multi_array<double, 4> x ({2, 2, 2, 2});

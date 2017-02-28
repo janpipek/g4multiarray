@@ -5,12 +5,16 @@
 #include <array>
 #include <ostream>
 #include <functional>
+#include <vector>
 
 // Forward definition of types
 template<typename T, size_t N> class multi_array;
 template<typename T, size_t N> class multi_array_view;
 template<typename T, size_t N> class multi_array_view_const;
 template<typename T, size_t N, template<typename, size_t> class data_policy> class multi_array_base;
+
+template<typename T> multi_array<T, 1> asarray(const std::vector<T>&);
+template<typename T, size_t N> multi_array<T, 1> asarray(const std::array<T, N>&);
 
 template<size_t N> size_t get_product(const std::array<size_t, N>& arr)
 {
@@ -58,20 +62,34 @@ template<size_t N> struct slicer : public slicer_base<N>
         }
         else
         {
-            size_t newOffset = offset + strides[I] * fNumbers[1];
+            if (fNumbers[0] > fNumbers[1])
+            {
+                throw std::runtime_error("TODO: something intelligent");
+            }
+            if ((fNumbers[1] > shape[I]) || (fNumbers[0] >= shape[I]))
+            {
+                throw std::runtime_error("TODO: something intelligent");
+            }
+
+            size_t newOffset = offset + strides[I] * fNumbers[0];
             std::array<size_t, new_dim(M)> newShape;
             std::array<size_t, new_dim(M)> newStrides;
 
             size_t iStride = (N == 2) ? 1 : fNumbers[2];
-            for (int i = 0; i < I; i++)
+            for (int i = 0; i <= I; i++)
             {
                 newShape[i] = shape[i];
                 newStrides[i] = strides[i] * iStride;
             }
-            for (int j = I; j < new_dim(M); j++)
+            newShape[I] = (fNumbers[1] - fNumbers[0]);
+            if (iStride > 1)
             {
-                newShape[j] = shape[j+1];
-                newStrides[j] = strides[j+1];
+                (newShape[I] /= iStride) += 1;
+            }
+            for (int j = I+1; j < new_dim(M); j++)
+            {
+                newShape[j] = shape[j];
+                newStrides[j] = strides[j];
             }
 
             return std::make_tuple(newOffset, newShape, newStrides);
@@ -90,7 +108,12 @@ template<> struct slicer<1> : public slicer_base<1>
     template<size_t M> std::tuple<size_t, std::array<size_t, new_dim(M)>, std::array<size_t, new_dim(M)>>
         apply(size_t offset, std::array<size_t, M> shape, std::array<size_t, M> strides, size_t I)
     {
-        size_t newOffset = offset + strides[I] * fNumbers[1];
+        if (fNumbers[0] >= shape[I])
+        {
+            throw std::runtime_error("TODO: something intelligent");
+        }
+
+        size_t newOffset = offset + strides[I] * fNumbers[0];
         std::array<size_t, new_dim(M)> newShape;
         std::array<size_t, new_dim(M)> newStrides;
         for (int i = 0; i < I; i++)
@@ -414,6 +437,16 @@ public:
     item_type operator[] (size_t i) { return accessor_type::get_item(*this, i); }
 
     multi_array<T, N> Copy() const { return multi_array<T, N>(*this); }
+
+    template<size_t M> multi_array<T, M> Resize(const std::array<size_t, M>& newShape) const
+    {
+        if (!get_product(fShape) == get_product(newShape))
+        {
+            throw std::runtime_error("Total size of the new array must equal to the old one.");
+        }
+        auto copy = Copy();
+        return multi_array<T, M>(newShape, copy.Data());
+    }
 
     // Conversion
     template<typename U> multi_array<U, N> As() const
@@ -959,5 +992,28 @@ template<typename T> multi_array<T, 1> linspace(const T& start, const T& stop, s
     if (endpoint) { data[num-1] = stop; } // To make the endpoint precise
     return { { num }, std::move(data) };
 }
+
+template<typename T> multi_array<T, 1> asarray(const std::vector<T>& data)
+{
+    std::valarray<T> d(data.data(), data.size());
+    return multi_array<T, 1>({data.size()}, d);
+}
+
+template<typename T, size_t N> multi_array<T, 1> asarray(const std::array<T, N>& data)
+{
+    std::valarray<T> d(N);
+    for (int i = 0; i < N; i++)
+    {
+        d[i] = data[i];
+    }
+    return multi_array<T, 1>({N}, d);
+}
+
+
+/** multi_array(const std::vector<T>& data)
+    : base_type(
+        std::valarray<T>(data.data(), data.size()),
+        index_type(data.size()))
+{} **/
 
 #endif
