@@ -7,6 +7,19 @@ using namespace std;
 
 int main()
 {
+    cout << make_slicer(3, 4, 3).new_dim(3) << endl;
+
+    multi_array<double, 4> x ({2, 2, 2, 2});
+
+    x[{1, 0, 1}] += 2;
+
+    cout << x << endl;
+
+    cout << x.apply_index<2>(3) << endl;
+}
+
+int main3()
+{
 	// Basic array
 	auto a = linspace<double>(1, 5, 5, true);   // -> {[1, 2, 3, 4, 5]}
 	cout << a << endl;
@@ -15,10 +28,10 @@ int main()
     cout << (-a) << endl;
 
 	// Operations
-	cout << a * 2 << endl;                      // -> {[2, 4, 6, 8, 10]}  
+	cout << a * 2 << endl;                      // -> {[2, 4, 6, 8, 10]}
 
 	cout << pow(2, a) << endl;                  // -> {[2, 4, 8, 16, 32]}
-	
+
 	multi_array<double, 2> x({3,3});
 
 	cout << multi_array<double, 2>({3, 3}, 1) << endl;
@@ -32,6 +45,8 @@ int main()
     auto z = x[2];
 
 	z = 22;
+
+    x[{2, 2}] *= 2;    // The same as x[2][2] but direct.
 
 	z[1] = 6.7;
 
@@ -56,7 +71,7 @@ int main()
 
 	// return 0;
 
-	
+
 
 	x *= 4;
 
@@ -135,7 +150,7 @@ int main2()
 	auto new_arr = arr.Reshape<3>({1, 2, 3});
 	cout << new_arr << endl;
 
-	
+
 	auto new_arr2 = arr.Reshape<4>({1, 2, 1, 3});
 	cout << new_arr2 << endl;
 

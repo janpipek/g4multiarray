@@ -22,6 +22,74 @@ template<size_t N> size_t get_product(const std::array<size_t, N>& arr)
     return total;
 }
 
+template<size_t N> struct slicer
+{
+public:
+    static constexpr size_t new_dim(int M) { return (N == 1) ? (M-1) : M; }
+
+    // template<size_t M> using target_array_type = std::array<size_t, new_dim(M)>;
+
+    // template<size_t M> using target_pair_type = std::pair<target_array_type<M>, target_array_type<M>>;
+
+    template<class... Ts> constexpr slicer(Ts... args)
+        : fNumbers({args...})
+    {
+        static_assert(N <= 3, "Cannot have slicer with dim > 3");
+    }
+
+    template<size_t M> std::tuple<size_t, std::array<size_t, new_dim(M)>, std::array<size_t, new_dim(M)>> apply(size_t offset, std::array<size_t, M> shape, std::array<size_t, M> strides, size_t I)
+    {
+        if (N == 0)
+        {
+            return std::make_tuple(offset, shape, strides);     // All things equal :-)
+        }
+        else
+        {
+            size_t newOffset = offset + strides[I] * fNumbers[1];
+            std::array<size_t, new_dim(M)> newShape;
+            std::array<size_t, new_dim(M)> newStrides;
+
+            if (N == 1)
+            {
+                for (int i = 0; i < I; i++)
+                {
+                    newShape[i] = shape[i];
+                    newStrides[i] = strides[i] * shape[I];
+                }
+                for (int j = I; j < new_dim(M); j++)
+                {
+                    newShape[j] = shape[j+1];
+                    newStrides[j] = strides[j+1];
+                }
+            }
+            else
+            {
+                size_t iStride = (N == 2) ? 1 : fNumbers[2];
+                for (int i = 0; i < I; i++)
+                {
+                    newShape[i] = shape[i];
+                    newStrides[i] = strides[i] * iStride;
+                }
+                for (int j = I; j < new_dim(M); j++)
+                {
+                    newShape[j] = shape[j+1];
+                    newStrides[j] = strides[j+1];
+                }
+            }
+        }
+    }
+
+private:
+    std::array<size_t, N> fNumbers;
+};
+
+template<class... Ts> constexpr slicer<(sizeof...(Ts))> make_slicer(Ts... others)
+{
+    return slicer<(sizeof...(Ts))>(others...);
+}
+
+// template<typename T, size_t N, template<typename, size_t> class data_policy> class multi_array_base
+
 /** Creates strides for a regular array. **/
 template<size_t N> std::array<size_t, N> get_strides(const std::array<size_t, N>& arr)
 {
@@ -116,7 +184,7 @@ protected:
     void set_data(const T& other)
     {
         fData = other;
-    }       
+    }
 
     data_type fData;
 };
@@ -155,7 +223,7 @@ private:
 protected:
     data_type fData;
 
-    /*data_array_type get_data_array() 
+    /*data_array_type get_data_array()
     // Does not work with gcc :-()
     //auto get_data_array() -> decltype(this->fData[std::gslice()])
     {
@@ -171,7 +239,7 @@ protected:
     void set_data(const T& other)
     {
         fData[get_gslice_()] = other;
-    }    
+    }
 };
 
 template<typename T, size_t N> using array_view_impl = t_array_view_impl<T, N, false>;
@@ -241,7 +309,7 @@ protected:
     using index_impl<N>::fSize;
     using index_impl<N>::fOffset;
     using base_type::fData;
-    
+
     using index_impl<N>::make_index;
     // using base_type::get_data_array;
     using base_type::set_data;
@@ -265,9 +333,25 @@ protected:
         }
         set_data(other.Data());
         return *this;
-    }    
+    }
 
 public:
+    template<size_t I, class... Ts> multi_array_view<T, slicer<sizeof...(Ts)>::new_dim(N)> apply_index(Ts... slicerArguments)
+    {
+        slicer<sizeof...(Ts)> theSlicer = make_slicer(slicerArguments...);
+        auto triple = theSlicer.apply(fOffset, fShape, fStrides, I);
+
+        return multi_array_view<T, slicer<sizeof...(Ts)>::new_dim(N)>(*this, std::get<1>(triple), std::get<2>(triple), std::get<0>(triple));
+
+        // return multi_array_view<T, slicer.new_dim(N)>>
+        // (fData, get<, const index_type& strides, size_t offset);
+
+        /**    const_item_type operator[] (size_t i) const { return accessor_type::get_const_item(*this, i); }
+
+            item_type operator[] (size_t i) { return accessor_type::get_item(*this, i); }**/
+
+    }
+
     template<typename U> multi_array<T, N> operator*(const U& other) const
     {
         multi_array<T, N> result = Copy();
@@ -334,7 +418,7 @@ public:
         {
             result[i] = f(data[i]);
         }
-        return multi_array<T, N>(fShape, std::move(result));     
+        return multi_array<T, N>(fShape, std::move(result));
     }
 };
 
@@ -474,6 +558,8 @@ public:
     #endif
     using typename base_type::index_type;
     using typename base_type::data_type;    // std::valarray<T>
+
+    template<typename, size_t, template<typename, size_t> typename> friend class multi_array_base;
 
     // Import members
     using base_type::operator=;
