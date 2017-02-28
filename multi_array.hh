@@ -4,6 +4,7 @@
 #include <valarray>
 #include <array>
 #include <ostream>
+#include <functional>
 
 // Forward definition of types
 template<typename T, size_t N> class multi_array;
