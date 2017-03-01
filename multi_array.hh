@@ -76,15 +76,16 @@ template<size_t N> struct slicer : public slicer_base<N>
             std::array<size_t, new_dim(M)> newStrides;
 
             size_t iStride = (N == 2) ? 1 : fNumbers[2];
-            for (int i = 0; i <= I; i++)
+            for (int i = 0; i < I; i++)
             {
                 newShape[i] = shape[i];
-                newStrides[i] = strides[i] * iStride;
+                newStrides[i] = strides[i];
             }
             newShape[I] = (fNumbers[1] - fNumbers[0]);
+            newStrides[I] = strides[I] * iStride;
             if (iStride > 1)
             {
-                (newShape[I] /= iStride) += 1;
+                ((newShape[I] -= 1) /= iStride) += 1;
             }
             for (int j = I+1; j < new_dim(M); j++)
             {
@@ -387,16 +388,7 @@ public:
     {
         slicer<sizeof...(Ts)> theSlicer = make_slicer(slicerArguments...);
         auto triple = theSlicer.apply(fOffset, fShape, fStrides, I);
-
         return multi_array_view<T, slicer<sizeof...(Ts)>::new_dim(N)>(*this, std::get<1>(triple), std::get<2>(triple), std::get<0>(triple));
-
-        // return multi_array_view<T, slicer.new_dim(N)>>
-        // (fData, get<, const index_type& strides, size_t offset);
-
-        /**    const_item_type operator[] (size_t i) const { return accessor_type::get_const_item(*this, i); }
-
-            item_type operator[] (size_t i) { return accessor_type::get_item(*this, i); }**/
-
     }
 
     template<typename U> multi_array<T, N> operator*(const U& other) const

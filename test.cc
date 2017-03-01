@@ -19,9 +19,11 @@ int main()
     cout << "Select middle square" << endl;
     cout << chessboard.apply_index<1>(3, 5).apply_index<0>(3, 5) << endl;
 
-    // THIS FAILS!
     cout << "Select 4 edge squares" << endl;
-    cout << chessboard.apply_index<1>(0, 8, 7).apply_index<0>(0, 8, 2) << endl;
+    cout << chessboard.apply_index<1>(0, 8, 7).apply_index<0>(0, 8, 7) << endl;
+
+    cout << "Select each second row and column" << endl;
+    cout << chessboard.apply_index<1>(1, 8, 2).apply_index<0>(0, 8, 2) << endl;
 }
 
 int main4()
