@@ -11,28 +11,28 @@ int main()
     cout << chessboard << endl;
 
     cout << "Select 4th row" << endl;
-    cout << chessboard.apply_index<0>(3) << endl;
+    cout << chessboard.slice<0>(3) << endl;
 
     cout << "Select last two columns" << endl;
-    cout << chessboard.apply_index<1>(6, 8) << endl;
+    cout << chessboard.slice<1>(6, 8) << endl;
 
     cout << "Select middle square" << endl;
-    cout << chessboard.apply_index<1>(3, 5).apply_index<0>(3, 5) << endl;
+    cout << chessboard.slice<1>(3, 5).slice<0>(3, 5) << endl;
 
     cout << "Select 4 edge squares" << endl;
-    cout << chessboard.apply_index<1>(0, 8, 7).apply_index<0>(0, 8, 7) << endl;
+    cout << chessboard.slice<1>(0, 8, 7).slice<0>(0, 8, 7) << endl;
 
     cout << "Select each second row and column" << endl;
-    cout << chessboard.apply_index<1>(1, 8, 2).apply_index<0>(0, 8, 2) << endl;
+    cout << chessboard.slice<1>(1, 8, 2).slice<0>(0, 8, 2) << endl;
 
     cout << "Select one element only (lower right)" << endl;
-    cout << chessboard.apply_index<1>(7).apply_index<0>(7)<< endl;
+    cout << chessboard.slice<1>(7).slice<0>(7)<< endl;
 
-    cout << "Select the same element using apply_indices" << endl;
-    cout << chessboard.apply_indices(7, 7) << endl;
+    cout << "Select the same element using operator()" << endl;
+    cout << chessboard(7, 7) << endl;
 
-    cout << "Select the last column using apply_indices" << endl;
-    cout << chessboard.apply_indices(_, 7) << endl;
+    cout << "Select the last column using operator()" << endl;
+    cout << chessboard(_, 7) << endl;
 }
 
 int main4()
@@ -45,7 +45,7 @@ int main4()
 
     cout << x << endl;
 
-    cout << x.apply_index<2>(3) << endl;
+    cout << x.slice<2>(3) << endl;
 }
 
 int main3()

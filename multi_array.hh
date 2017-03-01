@@ -410,7 +410,7 @@ public:
             (slicer<sizeof...(Ts)>::new_dim(N) != 0),
             multi_array_view<T, slicer<sizeof...(Ts)>::new_dim(N)>
         >::type
-    apply_index(Ts... slicerArguments)
+    slice(Ts... slicerArguments)
     {
         static_assert(I < N, "TODO: write something intelligent.");
         // TODO: Add special case for final dim = 0
@@ -424,36 +424,36 @@ public:
             (slicer<sizeof...(Ts)>::new_dim(N) == 0),
             const T&
         >::type
-    apply_index(Ts... slicerArguments)
+    slice(Ts... slicerArguments)
     {
         static_assert(I < N, "TODO: write something intelligent.");
         std::array<size_t, 1> ind = {slicerArguments...};
         return (*this)[ind[0]];
     }
 
-    template<size_t I> multi_array_view<T, N> apply_index(const slice_helper&)
+    template<size_t I> multi_array_view<T, N> slice(const slice_helper&)
     {
         return multi_array_view<T, N>(*this, fShape, fStrides, fOffset);
     }
 
 protected:
     template<int I, typename T1> auto _apply_indices(const T1& t)
-        -> decltype(apply_index<I>(t))
+        -> decltype(slice<I>(t))
     {
-        return apply_index<I>(t);
+        return slice<I>(t);
     }
 
     template<int I, typename T1, typename... Ts> auto _apply_indices(const T1& t, Ts... indices)
-        -> decltype(apply_index<I>(t)._apply_indices<I, Ts...>(indices...))
+        -> decltype(slice<I>(t)._apply_indices<I, Ts...>(indices...))
     {
         // auto intermediate = apply_index<I>(t);
-        constexpr int M = decltype(apply_index<I>(t))::Dim;
+        constexpr int M = decltype(slice<I>(t))::Dim;
         constexpr int J = I + 1 + M - N;
-        return apply_index<I>(t)._apply_indices<J, Ts...>(indices...);
+        return slice<I>(t)._apply_indices<J, Ts...>(indices...);
     }
 
 public:
-    template<typename... Ts> auto apply_indices(Ts... indices)
+    template<typename... Ts> auto operator()(Ts... indices)
         -> decltype(_apply_indices<0, Ts...>(indices...))
     {
         return _apply_indices<0, Ts...>(indices...); // Works for 1!
