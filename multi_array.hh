@@ -49,6 +49,8 @@ template<size_t N> struct slicer : public slicer_base<N>
 {
     using slicer_base<N>::new_dim;
 
+    static constexpr size_t deltaDim = 0;
+
     using slicer_base<N>::slicer_base;
 
     using slicer_base<N>::fNumbers;
@@ -114,6 +116,8 @@ template<> struct slicer<1> : public slicer_base<1>
     using slicer_base<1>::slicer_base;
 
     using slicer_base<1>::fNumbers;
+
+    static constexpr size_t deltaDim = 1;
 
     template<size_t M> std::tuple<size_t, std::array<size_t, new_dim(M)>, std::array<size_t, new_dim(M)>>
         apply(size_t offset, std::array<size_t, M> shape, std::array<size_t, M> strides, size_t I)
@@ -349,6 +353,7 @@ template<typename T, size_t N, template<typename, size_t> class data_policy> cla
 {
 public:
     // Type aliases
+    constexpr static size_t Dim = N;
     using base_type = data_policy<T, N>;
     using typename base_type::index_type;
     using const_item_type = typename std::conditional<N == 1, const T&, multi_array_view_const<T, N-1>>::type;
@@ -432,23 +437,26 @@ public:
     }
 
 protected:
-    template<typename T1, int I> auto _apply_indices(T1 t)
+    template<int I, typename T1> auto _apply_indices(const T1& t)
         -> decltype(apply_index<I>(t))
     {
         return apply_index<I>(t);
     }
 
-    template<typename T1, typename... Ts, int I> auto _apply_indices(T1 t, Ts... indices)
-        -> decltype(apply_index<I>(t)._apply_indices<Ts..., I>(indices...))
+    template<int I, typename T1, typename... Ts> auto _apply_indices(const T1& t, Ts... indices)
+        -> decltype(apply_index<I>(t)._apply_indices<I, Ts...>(indices...))
     {
-        return apply_index<I>(t)._apply_indices<Ts..., I>(indices...);
+        // auto intermediate = apply_index<I>(t);
+        constexpr int M = decltype(apply_index<I>(t))::Dim;
+        constexpr int J = I + 1 + M - N;
+        return apply_index<I>(t)._apply_indices<J, Ts...>(indices...);
     }
 
 public:
     template<typename... Ts> auto apply_indices(Ts... indices)
-        -> decltype(_apply_indices<Ts..., 0>(indices...))
+        -> decltype(_apply_indices<0, Ts...>(indices...))
     {
-        return _apply_indices<Ts..., 0>(indices...); // Works for 1!
+        return _apply_indices<0, Ts...>(indices...); // Works for 1!
     }
 
     // template<size_t I, class... Ts> const T&
@@ -560,7 +568,6 @@ public:
     #endif
     using typename base_type::index_type;
     using typename base_type::data_type;    // std::valarray<T>
-
 
 protected:
     // Import members
