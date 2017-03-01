@@ -440,6 +440,17 @@ public:
         return multi_array<T, M>(newShape, copy.Data());
     }
 
+    template<class... Ts> multi_array<T, sizeof...(Ts)> Resize(Ts... dims) const
+    {
+        std::array<size_t, sizeof...(Ts)> newShape {dims...};
+        if (!get_product(fShape) == get_product(newShape))
+        {
+            throw std::runtime_error("Total size of the new array must equal to the old one.");
+        }
+        auto copy = Copy();
+        return multi_array<T, sizeof...(Ts)>(newShape, copy.Data());
+    }
+
     // Conversion
     template<typename U> multi_array<U, N> As() const
     {

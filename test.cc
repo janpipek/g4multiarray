@@ -7,7 +7,7 @@ using namespace std;
 
 int main()
 {
-    auto chessboard = linspace(1, 64, 64).Resize<2>({8, 8});
+    auto chessboard = linspace(1, 64, 64).Resize(8, 8);
     cout << chessboard << endl;
 
     cout << "Select 4th row" << endl;
