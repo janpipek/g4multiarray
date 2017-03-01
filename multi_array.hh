@@ -98,6 +98,15 @@ template<size_t N> struct slicer : public slicer_base<N>
     }
 };
 
+/* template<class... Ts> multi_array_view<T, slicer_result<T, N, Ts...>
+{
+}
+
+template<class T1, class... Ts> multi_array_view<T, slicer_result<T, N, T1, Ts...>
+{
+    static constexpr size_t
+}*/
+
 template<> struct slicer<1> : public slicer_base<1>
 {
     using slicer_base<1>::new_dim;
@@ -120,7 +129,7 @@ template<> struct slicer<1> : public slicer_base<1>
         for (int i = 0; i < I; i++)
         {
             newShape[i] = shape[i];
-            newStrides[i] = strides[i] * shape[I];
+            newStrides[i] = strides[i];
         }
         for (int j = I; j < new_dim(M); j++)
         {
@@ -384,13 +393,38 @@ protected:
     }
 
 public:
-    template<size_t I, class... Ts> multi_array_view<T, slicer<sizeof...(Ts)>::new_dim(N)> apply_index(Ts... slicerArguments)
+    template<size_t I, class... Ts>
+        typename std::enable_if<
+            (slicer<sizeof...(Ts)>::new_dim(N) != 0),
+            multi_array_view<T, slicer<sizeof...(Ts)>::new_dim(N)>
+        >::type
+    apply_index(Ts... slicerArguments)
     {
+        static_assert(I < N, "TODO: write something intelligent.");
         // TODO: Add special case for final dim = 0
         slicer<sizeof...(Ts)> theSlicer = make_slicer(slicerArguments...);
         auto triple = theSlicer.apply(fOffset, fShape, fStrides, I);
         return multi_array_view<T, slicer<sizeof...(Ts)>::new_dim(N)>(*this, std::get<1>(triple), std::get<2>(triple), std::get<0>(triple));
     }
+
+    template<size_t I, class... Ts>
+        typename std::enable_if<
+            (slicer<sizeof...(Ts)>::new_dim(N) == 0),
+            const T&
+        >::type
+    apply_index(Ts... slicerArguments)
+    {
+        static_assert(I < N, "TODO: write something intelligent.");
+        std::array<size_t, 1> ind = {slicerArguments...};
+        return (*this)[ind[0]];
+    }
+
+    // template<size_t I, class... Ts> const T&
+
+    /* template<class... Ts> multi_array_view<T, slicer_result<T, N, Ts...>::type apply_indices(Ts... indices)
+    {
+
+    }*/
 
     template<typename U> multi_array<T, N> operator*(const U& other) const
     {

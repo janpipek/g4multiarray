@@ -25,8 +25,8 @@ int main()
     cout << "Select each second row and column" << endl;
     cout << chessboard.apply_index<1>(1, 8, 2).apply_index<0>(0, 8, 2) << endl;
 
-    cout << "Select one element only" << endl;
-    cout << chessboard.apply_index<1>(0).apply_index<0>(0) << endl;
+    cout << "Select one element only (lower right)" << endl;
+    cout << chessboard.apply_index<1>(7).apply_index<0>(7)<< endl;
 }
 
 int main4()
