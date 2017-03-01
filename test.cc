@@ -33,6 +33,16 @@ int main()
 
     cout << "Select the last column using operator()" << endl;
     cout << chessboard(_, 7) << endl;
+
+    cout << "Select all even columns using operator()" << endl;
+    cout << chessboard(_, _(0, 7, 2)) << endl;
+
+    cout << "Select middle square using operator()" << endl;
+    cout << chessboard(_(3, 5), _(3, 5)) << endl;
+
+    chessboard(_(1, 7), _(1, 7)) = 0;
+    cout << "Set all non-edge elements to 0:" << endl;
+    cout << chessboard << endl;
 }
 
 int main4()

@@ -56,7 +56,7 @@ template<size_t N> struct slicer : public slicer_base<N>
     using slicer_base<N>::fNumbers;
 
     template<size_t M> std::tuple<size_t, std::array<size_t, new_dim(M)>, std::array<size_t, new_dim(M)>>
-        apply(size_t offset, std::array<size_t, M> shape, std::array<size_t, M> strides, size_t I)
+        apply(size_t offset, std::array<size_t, M> shape, std::array<size_t, M> strides, size_t I) const
     {
         if (N == 0)
         {
@@ -120,7 +120,7 @@ template<> struct slicer<1> : public slicer_base<1>
     static constexpr size_t deltaDim = 1;
 
     template<size_t M> std::tuple<size_t, std::array<size_t, new_dim(M)>, std::array<size_t, new_dim(M)>>
-        apply(size_t offset, std::array<size_t, M> shape, std::array<size_t, M> strides, size_t I)
+        apply(size_t offset, std::array<size_t, M> shape, std::array<size_t, M> strides, size_t I) const
     {
         if (fNumbers[0] >= shape[I])
         {
@@ -151,7 +151,10 @@ template<class... Ts> constexpr slicer<(sizeof...(Ts))> make_slicer(Ts... others
 
 struct slice_helper
 {
-    // operator()(const slice_helper& );
+    template<typename... Ts> slicer<sizeof...(Ts)> operator()(Ts... args) const
+    {
+        return make_slicer(args...);
+    }
 };
 
 constexpr slice_helper _;
@@ -413,7 +416,6 @@ public:
     slice(Ts... slicerArguments)
     {
         static_assert(I < N, "TODO: write something intelligent.");
-        // TODO: Add special case for final dim = 0
         slicer<sizeof...(Ts)> theSlicer = make_slicer(slicerArguments...);
         auto triple = theSlicer.apply(fOffset, fShape, fStrides, I);
         return multi_array_view<T, slicer<sizeof...(Ts)>::new_dim(N)>(*this, std::get<1>(triple), std::get<2>(triple), std::get<0>(triple));
@@ -429,6 +431,28 @@ public:
         static_assert(I < N, "TODO: write something intelligent.");
         std::array<size_t, 1> ind = {slicerArguments...};
         return (*this)[ind[0]];
+    }
+
+    template<size_t I, size_t M>
+        typename std::enable_if<
+            (slicer<M>::new_dim(N) != 0),
+            multi_array_view<T, slicer<M>::new_dim(N)>
+        >::type
+    slice(const slicer<M>& theSlicer)
+    {
+        auto triple = theSlicer.apply(fOffset, fShape, fStrides, I);
+        return multi_array_view<T, slicer<M>::new_dim(N)>(*this, std::get<1>(triple), std::get<2>(triple), std::get<0>(triple));
+    }
+
+    template<size_t I, size_t M>
+        typename std::enable_if<
+            (slicer<M>::new_dim(N) == 0),
+            const T&
+        >::type
+    slice(const slicer<M>& theSlicer)
+    {
+        std::array<size_t, 1> ind = {theSlicer.fNumbers[0]};
+        return (*this)[ind];
     }
 
     template<size_t I> multi_array_view<T, N> slice(const slice_helper&)
