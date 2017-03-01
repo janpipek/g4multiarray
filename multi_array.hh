@@ -386,6 +386,7 @@ protected:
 public:
     template<size_t I, class... Ts> multi_array_view<T, slicer<sizeof...(Ts)>::new_dim(N)> apply_index(Ts... slicerArguments)
     {
+        // TODO: Add special case for final dim = 0
         slicer<sizeof...(Ts)> theSlicer = make_slicer(slicerArguments...);
         auto triple = theSlicer.apply(fOffset, fShape, fStrides, I);
         return multi_array_view<T, slicer<sizeof...(Ts)>::new_dim(N)>(*this, std::get<1>(triple), std::get<2>(triple), std::get<0>(triple));
