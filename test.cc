@@ -27,6 +27,9 @@ int main()
 
     cout << "Select one element only (lower right)" << endl;
     cout << chessboard.apply_index<1>(7).apply_index<0>(7)<< endl;
+
+    cout << "Select one element using apply_indices" << endl;
+    cout << chessboard.apply_indices(_, _) << endl;
 }
 
 int main4()

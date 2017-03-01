@@ -145,6 +145,13 @@ template<class... Ts> constexpr slicer<(sizeof...(Ts))> make_slicer(Ts... others
     return slicer<(sizeof...(Ts))>(others...);
 }
 
+struct slice_helper
+{
+    // operator()(const slice_helper& );
+};
+
+constexpr slice_helper _;
+
 // template<typename T, size_t N, template<typename, size_t> class data_policy> class multi_array_base
 
 /** Creates strides for a regular array. **/
@@ -417,6 +424,31 @@ public:
         static_assert(I < N, "TODO: write something intelligent.");
         std::array<size_t, 1> ind = {slicerArguments...};
         return (*this)[ind[0]];
+    }
+
+    template<size_t I> multi_array_view<T, N> apply_index(const slice_helper&)
+    {
+        return multi_array_view<T, N>(*this, fShape, fStrides, fOffset);
+    }
+
+protected:
+    template<typename T1, int I> auto _apply_indices(T1 t)
+        -> decltype(apply_index<I>(t))
+    {
+        return apply_index<I>(t);
+    }
+
+    template<typename T1, typename... Ts, int I> auto _apply_indices(T1 t, Ts... indices)
+        -> decltype(apply_index<I>(t)._apply_indices<Ts..., I>(indices...))
+    {
+        return apply_index<I>(t)._apply_indices<Ts..., I>(indices...);
+    }
+
+public:
+    template<typename... Ts> auto apply_indices(Ts... indices)
+        -> decltype(_apply_indices<Ts..., 0>(indices...))
+    {
+        return _apply_indices<Ts..., 0>(indices...); // Works for 1!
     }
 
     // template<size_t I, class... Ts> const T&
