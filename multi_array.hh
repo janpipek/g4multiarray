@@ -42,7 +42,7 @@ public:
     }
 
 protected:
-    std::array<size_t, N> fNumbers;
+    std::array<int, N> fNumbers;
 };
 
 template<size_t N> struct slicer : public slicer_base<N>
@@ -122,12 +122,21 @@ template<> struct slicer<1> : public slicer_base<1>
     template<size_t M> std::tuple<size_t, std::array<size_t, new_dim(M)>, std::array<size_t, new_dim(M)>>
         apply(size_t offset, std::array<size_t, M> shape, std::array<size_t, M> strides, size_t I) const
     {
-        if (fNumbers[0] >= shape[I])
+        if (fNumbers[0] >= (int)shape[I])
         {
             throw std::runtime_error("TODO: something intelligent");
         }
+		size_t start;
+		if (fNumbers[0] >= 0)
+		{
+			start = (size_t)fNumbers[0];
+		}
+		else
+		{
+			start = shape[I] + fNumbers[0];
+		}
 
-        size_t newOffset = offset + strides[I] * fNumbers[0];
+        size_t newOffset = offset + strides[I] * start;
         std::array<size_t, new_dim(M)> newShape;
         std::array<size_t, new_dim(M)> newStrides;
         for (int i = 0; i < I; i++)

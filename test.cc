@@ -40,9 +40,14 @@ int main()
     cout << "Select middle square using operator()" << endl;
     cout << chessboard(_(3, 5), _(3, 5)) << endl;
 
+	cout << "Select the last column using negative index" << endl;
+	cout << chessboard(_, -1) << endl;
+
     chessboard(_(1, 7), _(1, 7)) = 0;
     cout << "Set all non-edge elements to 0:" << endl;
     cout << chessboard << endl;
+
+	return 0;
 }
 
 int main4()
@@ -56,6 +61,8 @@ int main4()
     cout << x << endl;
 
     cout << x.slice<2>(3) << endl;
+
+	return 0;
 }
 
 int main3()
