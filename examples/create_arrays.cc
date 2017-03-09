@@ -10,7 +10,7 @@ int main()
     cout << array1 << endl << endl;
 
     cout << "The same empty 1D array: zeros<double>(4)" << endl;
-    multi_array<double, 1> array2 = zeros<double>(4);
+    auto array2 = zeros<double>(4);
     cout << array2 << endl << endl;
 
     cout << "2x2 matrix with ones array: multi_array<double, 1> {{2, 2}, 1}" << endl;
@@ -18,16 +18,21 @@ int main()
     cout << array3 << endl << endl;
 
     cout << "The same matrix: ones<double>(2, 2)" << endl;
-    multi_array<double, 2> array4 = ones<double>(2, 2);
+    auto array4 = ones<double>(2, 2);
     cout << array4 << endl << endl;
 
     cout << "Numbers from 1 to 10: linspace<int>(1, 10, 10)" << endl;
-    multi_array<int, 1> array5 = linspace<int>(1, 10, 10);
+    auto array5 = linspace<int>(1, 10, 10);
     cout << array5 << endl << endl;
 
     cout << "Numbers from 0 to 9: arange(10)" << endl;
-    multi_array<int, 1> array6 = arange(10);
+    auto array6 = arange(10);
     cout << array6 << endl << endl;
+
+    cout << "Powers of ten: geomspace(1, 1000000, 7)" << endl;
+    auto array7 = geomspace(1, 1000000, 7);
+    cout << array7 << endl << endl;
+
 
     return 0;
 }

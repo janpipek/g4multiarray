@@ -15,9 +15,12 @@ Installation
 ------------
 The library is header-only. Just download multi_array.hh and include it in your project.
 
+Documentation
+-------------
+See [Tutorial](doc/tutorial.md)
+
 Examples
 --------
-
 See the examples directory.
 
 Inspiration

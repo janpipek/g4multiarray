@@ -351,15 +351,20 @@ public:
 
     template<template<typename, size_t> class data_policy> static const_item_type get_const_item(const multi_array_base<T, 1, data_policy>& array, size_t i)
     {
-        return array[std::array<size_t, 1>{i}];
+        return array.At(std::array<size_t, 1>{i});
     }
 
     template<template<typename, size_t> class data_policy> static item_type get_item(multi_array_base<T, 1, data_policy>& array, size_t i)
     {
-        return array[std::array<size_t, 1>{i}];
+        return array.At(std::array<size_t, 1>{i});
     }
 };
 
+/**
+  * @short multi_array-like object
+  *
+  * Can be either an array itself, or any of its views.
+  */
 template<typename T, size_t N, template<typename, size_t> class data_policy> class multi_array_base
     : public data_policy<T, N>
 {
@@ -528,9 +533,9 @@ public:
     }
 
 public:
-    T& operator[] (const index_type& i) { return fData[make_index(i)]; }
+    T& At(const index_type& i) { return fData[make_index(i)]; }
 
-    const T& operator[] (const index_type& i) const { return fData[make_index(i)]; }
+    const T& At(const index_type& i) const { return fData[make_index(i)]; }
 
     const_item_type operator[] (size_t i) const { return accessor_type::get_const_item(*this, i); }
 
@@ -602,6 +607,9 @@ public:
     }
 };
 
+/**
+  * @short Multi-dimensional array, owning its data.
+  */
 template<typename T, size_t N> class multi_array : public multi_array_base<T, N, array_owner_impl>
 {
 public:
@@ -1117,12 +1125,12 @@ template<typename T> multi_array<T, 1> linspace(const T& start, const T& stop, s
 
 template<typename T> multi_array<T, 1> logspace(const T& start, const T& stop, size_t num, bool endpoint = true)
 {
-    return exp(log(10) * linspace(start, stop, num, endpoint));
+    return exp(log(10) * linspace((double)start, (double)stop, num, endpoint)).As<T>();
 }
 
 template<typename T> multi_array<T, 1> geomspace(const T& start, const T& stop, size_t num, bool endpoint = true)
 {
-    return logspace(log10(start), log10(stop), num, endpoint);
+    return logspace(log10((double)start), log10((double)stop), num, endpoint).As<T>();
 }
 
 template<typename T> multi_array<T, 1> arange(const T& start, const T& stop, const T& step)
@@ -1132,7 +1140,7 @@ template<typename T> multi_array<T, 1> arange(const T& start, const T& stop, con
     {
         nSteps--;
     }
-    return linspace(start, start + nSteps * step, nSteps);
+    return linspace(start, start + nSteps * step, nSteps+1);
 }
 
 template<typename T> multi_array<T, 1> arange(const T& start, const T& stop)
@@ -1228,8 +1236,8 @@ template<typename T, typename U> ufunc_type<T, U> vectorize(T (*f)(const U&))
 
 template<typename T, typename U> ufunc_type<T, U> vectorize(T (*f)(U))
 {
-    std::function<T(U)> referenced = f;
-    return vectorize(f);
+    std::function<T(const U&)> referenced = [f](const U& x) { return f(x); };
+    return _make_vectorized(referenced);
 }
 
 #endif

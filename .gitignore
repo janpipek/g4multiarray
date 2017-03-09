@@ -35,3 +35,9 @@ Debug/
 .vs/
 *.sln
 *.vcxproj*
+
+# QtCreator
+*.config
+*.creator*
+*.files
+*.includes
