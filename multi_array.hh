@@ -588,6 +588,18 @@ public:
         }
         return multi_array<T, N>(fShape, std::move(result));
     }
+
+    template<typename U> multi_array<U, N> Apply(std::function<U(const T&)> f) const
+    {
+        std::valarray<U> result;
+        auto data = Data();
+        result.resize(fSize);
+        for (size_t i = 0; i < fSize; i++)
+        {
+            result[i] = f(data[i]);
+        }
+        return multi_array<U, N>(fShape, std::move(result));
+    }
 };
 
 template<typename T, size_t N> class multi_array : public multi_array_base<T, N, array_owner_impl>
@@ -1103,6 +1115,39 @@ template<typename T> multi_array<T, 1> linspace(const T& start, const T& stop, s
     return { { num }, std::move(data) };
 }
 
+template<typename T> multi_array<T, 1> logspace(const T& start, const T& stop, size_t num, bool endpoint = true)
+{
+    return exp(log(10) * linspace(start, stop, num, endpoint));
+}
+
+template<typename T> multi_array<T, 1> geomspace(const T& start, const T& stop, size_t num, bool endpoint = true)
+{
+    return logspace(log10(start), log10(stop), num, endpoint);
+}
+
+template<typename T> multi_array<T, 1> arange(const T& start, const T& stop, const T& step)
+{
+    int nSteps = (stop - start) / step;
+    if ((nSteps * step + start) >= stop)
+    {
+        nSteps--;
+    }
+    return linspace(start, start + nSteps * step, nSteps);
+}
+
+template<typename T> multi_array<T, 1> arange(const T& start, const T& stop)
+{
+    T one { 1 };
+    return arange(start, stop, one);
+}
+
+template<typename T> multi_array<T, 1> arange(const T& stop)
+{
+    T zero { 0 };
+    T one { 1 };
+    return arange(zero, stop, one);
+}
+
 template<typename T> multi_array<T, 1> asarray(const std::vector<T>& data)
 {
     std::valarray<T> d(data.data(), data.size());
@@ -1119,11 +1164,72 @@ template<typename T, size_t N> multi_array<T, 1> asarray(const std::array<T, N>&
     return multi_array<T, 1>({N}, d);
 }
 
+template<typename U, typename... Ts> multi_array<U, sizeof...(Ts)> zeros(Ts... args)
+{
+    std::array<size_t, sizeof...(Ts)> shape { args... };
+    return multi_array<U, sizeof...(Ts)>(shape);
+}
 
-/** multi_array(const std::vector<T>& data)
-    : base_type(
-        std::valarray<T>(data.data(), data.size()),
-        index_type(data.size()))
-{} **/
+template<typename T, int N, template<typename, size_t> typename data_policy> multi_array<T, N> zeroslike(const multi_array_base<T, N, data_policy>& other)
+{
+    return multi_array<T, N>(other.Shape());
+}
+
+template<typename U, typename... Ts> multi_array<U, sizeof...(Ts)> ones(Ts... args)
+{
+    return zeros<U>(args...) + U(1);
+}
+
+/**
+  * @short Vectorized function.
+  *
+  * Best created using the vectorize(f) call.
+  */
+template<typename T, typename U> class ufunc_type
+{
+public:
+    using function_type = std::function<T(const U&)>;
+
+    ufunc_type(function_type f) : fWrapped(f) { }
+
+    template<size_t N, template<typename, size_t> typename data_policy> multi_array<T, N> operator()(const multi_array_base<U, N, data_policy>& other)
+    {
+        return other.Apply(fWrapped);
+    }
+
+private:
+    function_type fWrapped;
+};
+
+template<typename T, typename U>  ufunc_type<T, U> _make_vectorized(std::function<T(const U&)>& f)
+{
+    return ufunc_type<T, U>(f);
+}
+
+/**
+  * @short Create a vectorized function, that is applicable to array of any shape.
+  */
+template<typename T, typename U> ufunc_type<T, U> vectorize(std::function<T(const U&)>& f)
+{
+    return _make_vectorized(f);
+}
+
+template<typename T, typename U> ufunc_type<T, U> vectorize(std::function<T(U)>& f)
+{
+    std::function<T(const U&)> referenced = [f](const U& x) { return f(x); };
+    return _make_vectorized(referenced);
+}
+
+template<typename T, typename U> ufunc_type<T, U> vectorize(T (*f)(const U&))
+{
+    std::function<T(const U&)> referenced = f;
+    return _make_vectorized(referenced);
+}
+
+template<typename T, typename U> ufunc_type<T, U> vectorize(T (*f)(U))
+{
+    std::function<T(U)> referenced = f;
+    return vectorize(f);
+}
 
 #endif

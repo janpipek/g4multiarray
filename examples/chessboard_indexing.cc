@@ -34,7 +34,7 @@ int main()
     cout << chessboard(_, 7) << endl << endl;
 
     cout << "Last column using negative index: chessboard(_, -1)" << endl;
-	cout << chessboard(_, -1) << endl << endl;
+    cout << chessboard(_, -1) << endl << endl;
 
     cout << "Select all even columns using operator(): chessboard(_, _(0, 7, 2))" << endl;
     cout << chessboard(_, _(0, 7, 2)) << endl << endl;
@@ -46,5 +46,5 @@ int main()
     cout << "Set all non-edge elements to 0: chessboard(_(1, 7), _(1, 7)) = 0" << endl;
     cout << chessboard << endl;
 
-	return 0;
+    return 0;
 }

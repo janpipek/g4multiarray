@@ -7,7 +7,7 @@ build/%: examples/%.cc multi_array.hh
 
 all: examples
 
-examples: build/chessboard_indexing
+examples: build/chessboard_indexing build/create_arrays build/vectorize
 
 test: build/test
 	build/test
