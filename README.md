@@ -11,9 +11,14 @@ Goals
 - Interoperability with Geant4's G4ThreeVector, G4RotationMatrix, ...
 - Compilability with GCC 4.8+, Visual Studio
 
-Demo
-----
-Look in `test.cc` for the usage, compile & run. More detailed description to come.
+Installation
+------------
+The library is header-only. Just download multi_array.hh and include it in your project.
+
+Examples
+--------
+
+See the examples directory.
 
 Inspiration
 -----------

@@ -1,5 +1,19 @@
-all: test
+CC=g++
+CFLAGS=-std=c++11
 
-# test: G4MultiArray.hh G4MultiArrayTools.hh test.cc
-test: multi_array.hh test.cc
-	g++ -std=c++11 -g -o test test.cc
+build/%: examples/%.cc multi_array.hh
+	mkdir -p build
+	$(CC) -o $@ $< $(CFLAGS)
+
+all: examples
+
+examples: build/chessboard_indexing
+
+test: build/test
+	build/test
+
+clean:
+	rm build/*
+
+build/test: tests/test_main.cc multi_array.hh
+	$(CC) $(CFLAGS) -g -o build/test tests/test_main.cc
